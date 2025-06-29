@@ -58,20 +58,164 @@ speclinter test <feature>    # Run feature tests
 speclinter status <feature>  # Show feature status
 ```
 
+## Available MCP Tools
+
+When using SpecLinter through AI IDEs or the MCP protocol, these tools are available:
+
+### `parse_spec`
+Parse a specification and generate structured tasks with quality grading.
+
+**Parameters:**
+- `spec` (string, required) - The specification text to parse
+- `feature_name` (string, required) - Name for the feature (used for directory)
+- `context` (string, optional) - Additional context about the implementation
+
+**Returns:**
+- Quality grade (A+ to F) and score
+- Generated tasks with acceptance criteria
+- Files created (task files, Gherkin scenarios)
+- Improvement suggestions
+- Similar existing features
+
+**Example:**
+```json
+{
+  "spec": "Create a user authentication system with login, logout, and password reset functionality. Users should receive confirmation emails after successful registration.",
+  "feature_name": "user-auth",
+  "context": "React web application with Node.js backend"
+}
+```
+
+### `get_task_status`
+Get the current status and progress of a feature's tasks.
+
+**Parameters:**
+- `feature_name` (string, required) - Name of the feature to check
+
+**Returns:**
+- Total, completed, in-progress, and blocked task counts
+- Overall progress percentage
+- Last updated timestamp
+
+### `find_similar`
+Find existing features similar to a given specification to avoid duplicate work.
+
+**Parameters:**
+- `spec` (string, required) - Specification to find similarities for
+- `threshold` (number, optional, default: 0.8) - Similarity threshold (0.0 to 1.0)
+
+**Returns:**
+- List of similar features with similarity scores
+- Feature summaries and task counts
+- Status of similar features
+
+### `update_task_status`
+Update the status of a specific task and regenerate active files.
+
+**Parameters:**
+- `feature_name` (string, required) - Name of the feature
+- `task_id` (string, required) - ID of the task to update
+- `status` (string, required) - New status: `not_started`, `in_progress`, `completed`, `blocked`
+- `notes` (string, optional) - Optional notes about the status change
+
+**Returns:**
+- Updated task information
+- Confirmation of status change
+
+## Quality Grading System
+
+SpecLinter analyzes specifications and assigns quality grades:
+
+### Grade Scale
+- **A+ (95-100)**: Exceptional specification with comprehensive details
+- **A (90-94)**: Excellent specification with clear requirements
+- **B (80-89)**: Good specification with minor improvements needed
+- **C (70-79)**: Adequate specification with several areas for improvement
+- **D (60-69)**: Poor specification requiring significant enhancement
+- **F (0-59)**: Failing specification with major issues
+
+### Quality Criteria
+- **Acceptance Criteria**: Clear, measurable success conditions
+- **Error Handling**: Specified failure scenarios and edge cases
+- **Specificity**: Concrete requirements vs. vague terms
+- **Completeness**: Sufficient detail for implementation
+- **User Stories**: Proper format and context (optional)
+
+### Improvement Suggestions
+SpecLinter provides actionable feedback:
+- Replace vague terms with specific metrics
+- Add missing acceptance criteria
+- Include error handling scenarios
+- Structure as user stories when appropriate
+- Expand brief specifications with implementation details
+
+## Testing SpecLinter Locally
+
+### Quick Test
+```bash
+# Build the project
+pnpm build
+
+# Initialize in a test directory
+mkdir test-project && cd test-project
+speclinter init
+
+# Create a test specification
+echo "Create a user registration system with email validation." > spec.md
+
+# Test the parse_spec tool
+node -e "
+import { handleParseSpec } from '../dist/tools.js';
+import { readFileSync } from 'fs';
+
+const spec = readFileSync('spec.md', 'utf-8');
+const result = await handleParseSpec({
+  spec,
+  feature_name: 'user-registration',
+  context: 'Web application'
+});
+
+console.log('Grade:', result.grade);
+console.log('Tasks created:', result.tasks.length);
+console.log('Files created:', result.files_created.length);
+"
+
+# Check the generated files
+ls -la tasks/user-registration/
+```
+
+### MCP Server Testing
+```bash
+# Start the MCP server
+node dist/cli.js serve
+
+# In another terminal, send a test message
+echo '{"jsonrpc": "2.0", "id": 1, "method": "initialize", "params": {"protocolVersion": "2024-11-05", "capabilities": {}, "clientInfo": {"name": "test", "version": "1.0.0"}}}' | node dist/cli.js serve
+```
+
+### AI IDE Integration
+Add to your MCP configuration:
+```json
+{
+  "speclinter": {
+    "command": "node",
+    "args": ["/path/to/speclinter-mcp/dist/cli.js", "serve"],
+    "cwd": "/path/to/speclinter-mcp"
+  }
+}
+```
+
 ## Development
 
 ```bash
 # Install dependencies
 pnpm install
 
-# Run in development mode
-pnpm dev
-
 # Build for production
 pnpm build
 
-# Run tests
-pnpm test
+# Watch mode for development
+pnpm build --watch
 
 # Lint code
 pnpm lint
