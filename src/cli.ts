@@ -68,9 +68,8 @@ async function runFeatureTests(feature: string): Promise<void> {
 
 async function showFeatureStatus(feature: string): Promise<void> {
   try {
-    const { Storage } = await import('./core/storage.js');
-    const storage = new Storage(process.cwd());
-    await storage.initialize();
+    const { StorageManager } = await import('./core/storage-manager.js');
+    const storage = await StorageManager.createInitializedStorage();
 
     const status = await storage.getFeatureStatus(feature);
 

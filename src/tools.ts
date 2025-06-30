@@ -1,6 +1,7 @@
 import { SpecParser } from './core/parser.js';
 import { TaskGenerator } from './core/generator.js';
 import { Storage } from './core/storage.js';
+import { StorageManager } from './core/storage-manager.js';
 import { TaskStatusSchema } from './types/index.js';
 import { promises as fs } from 'fs';
 import path from 'path';
@@ -20,8 +21,7 @@ export async function handleParseSpec(args: any) {
 
   // Initialize components - use provided project_root or current working directory
   const rootDir = project_root || process.cwd();
-  const storage = new Storage(rootDir);
-  await storage.initialize();
+  const storage = await StorageManager.createInitializedStorage(rootDir);
 
   // Get config through a proper method
   const config = await storage.getConfig();
@@ -77,8 +77,7 @@ export async function handleParseSpec(args: any) {
 
 export async function handleGetTaskStatus(args: any) {
   const { feature_name } = args;
-  const storage = new Storage(process.cwd());
-  await storage.initialize();
+  const storage = await StorageManager.createInitializedStorage();
   const status = await storage.getFeatureStatus(feature_name);
   return status;
 }
@@ -86,8 +85,7 @@ export async function handleGetTaskStatus(args: any) {
 export async function handleRunTests(args: any) {
   const { feature_name, task_id } = args;
 
-  const storage = new Storage(process.cwd());
-  await storage.initialize();
+  const storage = await StorageManager.createInitializedStorage();
   const generator = new TaskGenerator();
 
   // Run tests
@@ -108,8 +106,7 @@ export async function handleRunTests(args: any) {
 
 export async function handleFindSimilar(args: any) {
   const { spec, threshold = 0.8 } = args;
-  const storage = new Storage(process.cwd());
-  await storage.initialize();
+  const storage = await StorageManager.createInitializedStorage();
   const similar = await storage.findSimilar(spec, threshold);
 
   return similar.map(s => ({
@@ -127,8 +124,7 @@ export async function handleUpdateTaskStatus(args: any) {
   // Validate status
   const validStatus = TaskStatusSchema.parse(status);
 
-  const storage = new Storage(process.cwd());
-  await storage.initialize();
+  const storage = await StorageManager.createInitializedStorage();
 
   // Update task status
   const updatedTask = await storage.updateTaskStatus(

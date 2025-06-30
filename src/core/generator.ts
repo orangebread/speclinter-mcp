@@ -108,9 +108,8 @@ export class TaskGenerator {
 
   async updateActiveFile(featureName: string): Promise<void> {
     // This is handled by Storage class
-    const { Storage } = await import('./storage.js');
-    const storage = new Storage();
-    await storage.initialize();
+    const { StorageManager } = await import('./storage-manager.js');
+    const storage = await StorageManager.createInitializedStorage();
     await storage.updateActiveFile(featureName);
   }
 }
