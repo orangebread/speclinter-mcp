@@ -14,5 +14,3 @@ coverage/
 # SpecLinter generated files
 .speclinter/speclinter.db
 .speclinter/cache/
-
-.docs_deprecated/

@@ -6,7 +6,8 @@ import {
   handleGetTaskStatus,
   handleRunTests,
   handleFindSimilar,
-  handleUpdateTaskStatus
+  handleUpdateTaskStatus,
+  handleInitProject
 } from './tools.js';
 
 class SpecLinterServer {
@@ -31,7 +32,8 @@ class SpecLinterServer {
         inputSchema: {
           spec: z.string().describe('The specification text to parse'),
           feature_name: z.string().describe('Name for the feature (used for directory)'),
-          context: z.string().optional().describe('Additional context about the implementation')
+          context: z.string().optional().describe('Additional context about the implementation'),
+          project_root: z.string().optional().describe('Root directory of the project (defaults to current working directory)')
         }
       },
       async (args) => {
@@ -125,6 +127,28 @@ class SpecLinterServer {
       },
       async (args) => {
         const result = await handleUpdateTaskStatus(args);
+        return {
+          content: [{
+            type: 'text',
+            text: JSON.stringify(result, null, 2)
+          }]
+        };
+      }
+    );
+
+    // Initialize project tool
+    this.server.registerTool(
+      'init_project',
+      {
+        title: 'Initialize SpecLinter Project',
+        description: 'Initialize SpecLinter in a project directory with default configuration and templates',
+        inputSchema: {
+          project_root: z.string().optional().describe('Root directory for the project (defaults to current working directory)'),
+          force_reinit: z.boolean().optional().default(false).describe('Force reinitialization if already initialized')
+        }
+      },
+      async (args) => {
+        const result = await handleInitProject(args);
         return {
           content: [{
             type: 'text',

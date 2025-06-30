@@ -21,12 +21,11 @@ pnpm install
 # Build the project
 pnpm build
 
-# Initialize in your project
-cd my-project
-speclinter init
-
-# Configure your MCP client to use speclinter
+# Configure your MCP client to use SpecLinter
 # In Cursor/Windsurf: Add to MCP tools configuration
+
+# Initialize projects using MCP tools (no CLI needed!)
+# Use your AI IDE to call: init_project_speclinter
 ```
 
 ## Project Structure
@@ -52,15 +51,29 @@ your-project/
 ## CLI Commands
 
 ```bash
-speclinter init              # Initialize project
 speclinter serve             # Start MCP server
 speclinter test <feature>    # Run feature tests
 speclinter status <feature>  # Show feature status
 ```
 
+**Note**: Project initialization is now handled through the MCP `init_project` tool, not CLI.
+
 ## Available MCP Tools
 
 When using SpecLinter through AI IDEs or the MCP protocol, these tools are available:
+
+### `init_project`
+Initialize SpecLinter in a project directory with default configuration and templates.
+
+**Parameters:**
+- `project_root` (string, optional) - Root directory for the project (defaults to current working directory)
+- `force_reinit` (boolean, optional, default: false) - Force reinitialization if already initialized
+
+**Returns:**
+- Success status and message
+- Project root directory used
+- List of directories created
+- Next steps for configuration
 
 ### `parse_spec`
 Parse a specification and generate structured tasks with quality grading.
@@ -69,6 +82,7 @@ Parse a specification and generate structured tasks with quality grading.
 - `spec` (string, required) - The specification text to parse
 - `feature_name` (string, required) - Name for the feature (used for directory)
 - `context` (string, optional) - Additional context about the implementation
+- `project_root` (string, optional) - Root directory of the project (defaults to current working directory)
 
 **Returns:**
 - Quality grade (A+ to F) and score
@@ -82,7 +96,8 @@ Parse a specification and generate structured tasks with quality grading.
 {
   "spec": "Create a user authentication system with login, logout, and password reset functionality. Users should receive confirmation emails after successful registration.",
   "feature_name": "user-auth",
-  "context": "React web application with Node.js backend"
+  "context": "React web application with Node.js backend",
+  "project_root": "/path/to/my-project"
 }
 ```
 
@@ -156,32 +171,20 @@ SpecLinter provides actionable feedback:
 # Build the project
 pnpm build
 
-# Initialize in a test directory
-mkdir test-project && cd test-project
-speclinter init
-
-# Create a test specification
-echo "Create a user registration system with email validation." > spec.md
-
-# Test the parse_spec tool
-node -e "
-import { handleParseSpec } from '../dist/tools.js';
-import { readFileSync } from 'fs';
-
-const spec = readFileSync('spec.md', 'utf-8');
-const result = await handleParseSpec({
-  spec,
-  feature_name: 'user-registration',
-  context: 'Web application'
-});
-
-console.log('Grade:', result.grade);
-console.log('Tasks created:', result.tasks.length);
-console.log('Files created:', result.files_created.length);
-"
-
-# Check the generated files
-ls -la tasks/user-registration/
+# Test using MCP tools (through your AI IDE)
+# 1. Initialize a test project:
+#    Call: init_project_speclinter with project_root: "/path/to/test-project"
+#
+# 2. Parse a specification:
+#    Call: parse_spec_speclinter with:
+#    {
+#      "spec": "Create a user registration system with email validation.",
+#      "feature_name": "user-registration",
+#      "context": "Web application",
+#      "project_root": "/path/to/test-project"
+#    }
+#
+# 3. Check the generated files in test-project/tasks/user-registration/
 ```
 
 ### MCP Server Testing
