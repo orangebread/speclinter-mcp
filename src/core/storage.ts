@@ -10,7 +10,12 @@ import {
   ProjectContext,
   SimilarFeature,
   TestResult,
-  TaskStatus
+  TaskStatus,
+  DuplicateInfo,
+  MergeResult,
+  SaveFeatureOptions,
+  SaveFeatureResult,
+  ExistingFeature
 } from '../types/index.js';
 
 export class Storage {
@@ -208,83 +213,60 @@ export class Storage {
   async saveFeature(
     featureName: string,
     tasks: Task[],
-    parseResult: ParseResult
-  ): Promise<string[]> {
+    parseResult: ParseResult,
+    options: SaveFeatureOptions = {}
+  ): Promise<SaveFeatureResult> {
     if (!this.db || !this.config) throw new Error('Storage not initialized');
 
-    const createdFiles: string[] = [];
-    const featureDir = path.join(this.tasksDir, featureName);
+    // Check for existing feature with exact name
+    const existingFeature = this.getExistingFeature(featureName);
 
-    // Create feature directory
-    await fs.mkdir(featureDir, { recursive: true });
-    await fs.mkdir(path.join(featureDir, 'gherkin'), { recursive: true });
+    // Check for similar features if not skipping and deduplication is enabled
+    if (!options.skipSimilarityCheck && this.config.deduplication.enabled) {
+      const threshold = options.similarityThreshold ?? this.config.deduplication.similarityThreshold;
+      const similarFeatures = await this.findSimilar(parseResult.spec, threshold);
 
-    // Save to database
-    const featureId = `feat_${Date.now()}`;
-    this.db.prepare(`
-      INSERT OR REPLACE INTO features (id, name, spec, grade, score)
-      VALUES (?, ?, ?, ?, ?)
-    `).run(featureId, featureName, parseResult.spec, parseResult.grade, parseResult.score);
+      if (similarFeatures.length > 0 || existingFeature) {
+        const duplicateInfo: DuplicateInfo = {
+          type: existingFeature ? 'exact_match' : 'similar_features',
+          existingFeature,
+          similarFeatures,
+          recommendedAction: this.getRecommendedAction(similarFeatures, existingFeature)
+        };
 
-    // Save tasks
-    for (let i = 0; i < tasks.length; i++) {
-      const task = tasks[i];
+        // Handle based on strategy
+        const strategy = options.onSimilarFound ?? this.config.deduplication.defaultStrategy;
 
-      // Save to database
-      this.db.prepare(`
-        INSERT OR REPLACE INTO tasks (
-          id, feature_name, sequence, title, slug, summary, implementation, status,
-          acceptance_criteria, test_file, coverage_target, notes,
-          dependencies, blocks, relevant_patterns
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-      `).run(
-        task.id,
-        featureName,
-        i,
-        task.title,
-        task.slug,
-        task.summary,
-        task.implementation,
-        task.status,
-        JSON.stringify(task.acceptanceCriteria),
-        task.testFile,
-        task.coverageTarget,
-        task.notes,
-        JSON.stringify(task.dependencies || []),
-        JSON.stringify(task.blocks || []),
-        JSON.stringify(task.relevantPatterns || [])
-      );
-
-      // Create task file
-      const taskFileName = `task_${String(i + 1).padStart(2, '0')}_${task.slug}.md`;
-      const taskPath = path.join(featureDir, taskFileName);
-      await this.writeTaskFile(taskPath, task, featureName);
-      createdFiles.push(taskPath);
-
-      // Create gherkin file
-      if (task.testFile) {
-        const gherkinPath = path.join(featureDir, 'gherkin', task.testFile);
-        await this.writeGherkinFile(gherkinPath, task);
-        createdFiles.push(gherkinPath);
+        switch (strategy) {
+          case 'skip':
+            return { files: [], duplicateInfo };
+          case 'merge':
+            return await this.mergeWithExisting(featureName, tasks, parseResult, duplicateInfo);
+          case 'replace':
+            // Continue with normal save (INSERT OR REPLACE handles this)
+            break;
+          case 'prompt':
+          default:
+            return { files: [], duplicateInfo }; // Let caller handle the decision
+        }
       }
     }
 
-    // Create meta.json
-    const metaPath = path.join(featureDir, 'meta.json');
-    await fs.writeFile(metaPath, JSON.stringify({
-      featureName,
-      grade: parseResult.grade,
-      score: parseResult.score,
-      taskCount: tasks.length,
-      createdAt: new Date().toISOString()
-    }, null, 2));
-    createdFiles.push(metaPath);
+    // Continue with normal save using internal method
+    const files = await this.saveFeatureInternal(featureName, tasks, parseResult);
+    return { files };
+  }
 
-    // Create _active.md
-    await this.updateActiveFile(featureName);
-    createdFiles.push(path.join(featureDir, '_active.md'));
-
-    return createdFiles;
+  // Legacy method for backward compatibility
+  async saveFeatureLegacy(
+    featureName: string,
+    tasks: Task[],
+    parseResult: ParseResult
+  ): Promise<string[]> {
+    const result = await this.saveFeature(featureName, tasks, parseResult, {
+      skipSimilarityCheck: true
+    });
+    return result.files;
   }
 
   private async writeTaskFile(
@@ -494,14 +476,55 @@ export class Storage {
   }
 
   private calculateSimilarity(text1: string, text2: string): number {
-    // Simplified text similarity - in production use proper embeddings
+    // Enhanced similarity calculation with multiple factors
+    const wordSimilarity = this.calculateWordSimilarity(text1, text2);
+    const lengthSimilarity = this.calculateLengthSimilarity(text1, text2);
+    const structureSimilarity = this.calculateStructureSimilarity(text1, text2);
+
+    // Weighted combination
+    return (wordSimilarity * 0.6) + (lengthSimilarity * 0.2) + (structureSimilarity * 0.2);
+  }
+
+  private calculateWordSimilarity(text1: string, text2: string): number {
+    // Original word-based similarity
     const words1 = new Set(text1.toLowerCase().split(/\s+/));
     const words2 = new Set(text2.toLowerCase().split(/\s+/));
 
     const intersection = new Set([...words1].filter(x => words2.has(x)));
     const union = new Set([...words1, ...words2]);
 
-    return intersection.size / union.size;
+    return union.size > 0 ? intersection.size / union.size : 0;
+  }
+
+  private calculateLengthSimilarity(text1: string, text2: string): number {
+    const len1 = text1.length;
+    const len2 = text2.length;
+    const maxLen = Math.max(len1, len2);
+    const minLen = Math.min(len1, len2);
+    return maxLen > 0 ? minLen / maxLen : 1;
+  }
+
+  private calculateStructureSimilarity(text1: string, text2: string): number {
+    // Check for similar structural elements
+    const patterns = [
+      /as a .+? i want/gi,
+      /given .+? when .+? then/gi,
+      /should .+/gi,
+      /must .+/gi,
+      /acceptance criteria/gi,
+      /user story/gi
+    ];
+
+    let matches = 0;
+    const total = patterns.length;
+
+    for (const pattern of patterns) {
+      const has1 = pattern.test(text1);
+      const has2 = pattern.test(text2);
+      if (has1 === has2) matches++;
+    }
+
+    return total > 0 ? matches / total : 0;
   }
 
   private getTaskCount(featureName: string): number {
@@ -569,5 +592,185 @@ export class Storage {
     }
 
     return actions;
+  }
+
+  private getExistingFeature(featureName: string): ExistingFeature | undefined {
+    if (!this.db) return undefined;
+
+    const feature = this.db.prepare(`
+      SELECT * FROM features WHERE name = ?
+    `).get(featureName) as any;
+
+    if (!feature) return undefined;
+
+    const taskCount = this.getTaskCount(featureName);
+
+    return {
+      name: feature.name,
+      spec: feature.spec,
+      grade: feature.grade,
+      score: feature.score,
+      taskCount,
+      lastUpdated: feature.created_at
+    };
+  }
+
+  private getRecommendedAction(
+    similarFeatures: SimilarFeature[],
+    existingFeature?: ExistingFeature
+  ): 'merge' | 'replace' | 'rename' | 'skip' {
+    if (existingFeature) {
+      return 'replace'; // Exact name match
+    }
+
+    if (similarFeatures.length === 0) {
+      return 'merge'; // No conflicts
+    }
+
+    const highestSimilarity = Math.max(...similarFeatures.map(f => f.score));
+
+    if (highestSimilarity > 0.95) {
+      return 'skip'; // Very similar, likely duplicate
+    } else if (highestSimilarity > 0.8) {
+      return 'merge'; // Similar enough to merge
+    } else {
+      return 'rename'; // Some similarity, suggest rename
+    }
+  }
+
+  private mergeSpecs(existingSpec: string, newSpec: string): string {
+    // Simple merge strategy - could be enhanced with more sophisticated logic
+    if (existingSpec.includes(newSpec) || newSpec.includes(existingSpec)) {
+      // One spec contains the other, use the longer one
+      return existingSpec.length > newSpec.length ? existingSpec : newSpec;
+    }
+
+    return `${existingSpec}\n\n--- Additional Requirements ---\n${newSpec}`;
+  }
+
+  private async mergeWithExisting(
+    featureName: string,
+    newTasks: Task[],
+    parseResult: ParseResult,
+    duplicateInfo: DuplicateInfo
+  ): Promise<SaveFeatureResult> {
+    const existingTasks = await this.getFeatureTasks(featureName);
+
+    // Identify unique tasks by comparing summaries and implementations
+    const uniqueNewTasks = newTasks.filter(newTask =>
+      !existingTasks.some(existingTask =>
+        this.calculateSimilarity(newTask.summary, existingTask.summary) > (this.config?.deduplication.taskSimilarityThreshold ?? 0.9)
+      )
+    );
+
+    // Merge tasks with sequence adjustment
+    const mergedTasks = [...existingTasks, ...uniqueNewTasks.map((task, index) => ({
+      ...task,
+      id: `task_${String(existingTasks.length + index + 1).padStart(2, '0')}`,
+      featureName
+    }))];
+
+    // Update feature with merged content
+    const mergedSpec = this.mergeSpecs(duplicateInfo.existingFeature!.spec, parseResult.spec);
+    const updatedParseResult = { ...parseResult, spec: mergedSpec };
+
+    // Save merged result using the original saveFeature method with skip similarity check
+    const files = await this.saveFeatureInternal(featureName, mergedTasks, updatedParseResult);
+
+    const mergeResult: MergeResult = {
+      files,
+      mergedTasks,
+      originalTaskCount: existingTasks.length,
+      newTaskCount: uniqueNewTasks.length,
+      duplicateTasksSkipped: newTasks.length - uniqueNewTasks.length
+    };
+
+    return {
+      files,
+      mergeResult
+    };
+  }
+
+  private async saveFeatureInternal(
+    featureName: string,
+    tasks: Task[],
+    parseResult: ParseResult
+  ): Promise<string[]> {
+    // This is the original saveFeature logic without deduplication checks
+    if (!this.db || !this.config) throw new Error('Storage not initialized');
+
+    const createdFiles: string[] = [];
+    const featureDir = path.join(this.tasksDir, featureName);
+
+    // Create feature directory
+    await fs.mkdir(featureDir, { recursive: true });
+    await fs.mkdir(path.join(featureDir, 'gherkin'), { recursive: true });
+
+    // Save to database
+    const featureId = `feat_${Date.now()}`;
+    this.db.prepare(`
+      INSERT OR REPLACE INTO features (id, name, spec, grade, score)
+      VALUES (?, ?, ?, ?, ?)
+    `).run(featureId, featureName, parseResult.spec, parseResult.grade, parseResult.score);
+
+    // Save tasks
+    for (let i = 0; i < tasks.length; i++) {
+      const task = tasks[i];
+
+      // Save to database
+      this.db.prepare(`
+        INSERT OR REPLACE INTO tasks (
+          id, feature_name, sequence, title, slug, summary, implementation, status,
+          acceptance_criteria, test_file, coverage_target, notes,
+          dependencies, blocks, relevant_patterns
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `).run(
+        task.id,
+        featureName,
+        i,
+        task.title,
+        task.slug,
+        task.summary,
+        task.implementation,
+        task.status,
+        JSON.stringify(task.acceptanceCriteria),
+        task.testFile,
+        task.coverageTarget,
+        task.notes,
+        JSON.stringify(task.dependencies || []),
+        JSON.stringify(task.blocks || []),
+        JSON.stringify(task.relevantPatterns || [])
+      );
+
+      // Create task file
+      const taskFileName = `task_${String(i + 1).padStart(2, '0')}_${task.slug}.md`;
+      const taskPath = path.join(featureDir, taskFileName);
+      await this.writeTaskFile(taskPath, task, featureName);
+      createdFiles.push(taskPath);
+
+      // Create gherkin file
+      if (task.testFile) {
+        const gherkinPath = path.join(featureDir, 'gherkin', task.testFile);
+        await this.writeGherkinFile(gherkinPath, task);
+        createdFiles.push(gherkinPath);
+      }
+    }
+
+    // Create meta.json
+    const metaPath = path.join(featureDir, 'meta.json');
+    await fs.writeFile(metaPath, JSON.stringify({
+      featureName,
+      grade: parseResult.grade,
+      score: parseResult.score,
+      taskCount: tasks.length,
+      createdAt: new Date().toISOString()
+    }, null, 2));
+    createdFiles.push(metaPath);
+
+    // Create _active.md
+    await this.updateActiveFile(featureName);
+    createdFiles.push(path.join(featureDir, '_active.md'));
+
+    return createdFiles;
   }
 }

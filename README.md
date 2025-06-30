@@ -1,4 +1,4 @@
-# SpecLinter MCP (Merged Implementation)
+# SpecLinter MCP
 
 Transform specifications into structured tasks with built-in quality gates for AI-powered development.
 

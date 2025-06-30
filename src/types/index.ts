@@ -78,6 +78,40 @@ export const ProjectContextSchema = z.object({
   })).optional()
 });
 
+export const DuplicateInfoSchema = z.object({
+  type: z.enum(['exact_match', 'similar_features']),
+  existingFeature: z.object({
+    name: z.string(),
+    spec: z.string(),
+    grade: z.string(),
+    score: z.number(),
+    taskCount: z.number(),
+    lastUpdated: z.string()
+  }).optional(),
+  similarFeatures: z.array(SimilarFeatureSchema),
+  recommendedAction: z.enum(['merge', 'replace', 'rename', 'skip'])
+});
+
+export const MergeResultSchema = z.object({
+  files: z.array(z.string()),
+  mergedTasks: z.array(TaskSchema),
+  originalTaskCount: z.number(),
+  newTaskCount: z.number(),
+  duplicateTasksSkipped: z.number()
+});
+
+export const SaveFeatureOptionsSchema = z.object({
+  skipSimilarityCheck: z.boolean().optional(),
+  similarityThreshold: z.number().optional(),
+  onSimilarFound: z.enum(['merge', 'replace', 'skip', 'prompt']).optional()
+});
+
+export const SaveFeatureResultSchema = z.object({
+  files: z.array(z.string()),
+  duplicateInfo: DuplicateInfoSchema.optional(),
+  mergeResult: MergeResultSchema.optional()
+});
+
 export type TaskStatus = z.infer<typeof TaskStatusSchema>;
 export type Task = z.infer<typeof TaskSchema>;
 export type ParseResult = z.infer<typeof ParseResultSchema>;
@@ -85,3 +119,8 @@ export type FeatureStatus = z.infer<typeof FeatureStatusSchema>;
 export type TestResult = z.infer<typeof TestResultSchema>;
 export type SimilarFeature = z.infer<typeof SimilarFeatureSchema>;
 export type ProjectContext = z.infer<typeof ProjectContextSchema>;
+export type DuplicateInfo = z.infer<typeof DuplicateInfoSchema>;
+export type MergeResult = z.infer<typeof MergeResultSchema>;
+export type SaveFeatureOptions = z.infer<typeof SaveFeatureOptionsSchema>;
+export type SaveFeatureResult = z.infer<typeof SaveFeatureResultSchema>;
+export type ExistingFeature = DuplicateInfo['existingFeature'];

@@ -33,7 +33,10 @@ class SpecLinterServer {
           spec: z.string().describe('The specification text to parse'),
           feature_name: z.string().describe('Name for the feature (used for directory)'),
           context: z.string().optional().describe('Additional context about the implementation'),
-          project_root: z.string().optional().describe('Root directory of the project (defaults to current working directory)')
+          project_root: z.string().optional().describe('Root directory of the project (defaults to current working directory)'),
+          deduplication_strategy: z.enum(['prompt', 'merge', 'replace', 'skip']).optional().default('prompt').describe('How to handle duplicate/similar features'),
+          similarity_threshold: z.number().optional().describe('Similarity threshold for detecting duplicates (0.0 to 1.0)'),
+          skip_similarity_check: z.boolean().optional().default(false).describe('Skip similarity checking entirely')
         }
       },
       async (args) => {

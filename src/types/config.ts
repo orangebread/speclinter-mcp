@@ -30,6 +30,13 @@ export const ConfigSchema = z.object({
     autoDetect: z.boolean(),
     contextDir: z.string(),
     fallbackStack: z.string()
+  }),
+  deduplication: z.object({
+    enabled: z.boolean(),
+    similarityThreshold: z.number(),
+    defaultStrategy: z.enum(['prompt', 'merge', 'replace', 'skip']),
+    autoMergeThreshold: z.number(),
+    taskSimilarityThreshold: z.number()
   })
 });
 
@@ -65,5 +72,12 @@ export const DEFAULT_CONFIG: Config = {
     autoDetect: true,
     contextDir: "./.speclinter/context",
     fallbackStack: "node"
+  },
+  deduplication: {
+    enabled: true,
+    similarityThreshold: 0.8,
+    defaultStrategy: "prompt",
+    autoMergeThreshold: 0.95,
+    taskSimilarityThreshold: 0.9
   }
 };

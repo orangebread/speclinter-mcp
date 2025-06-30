@@ -10,5 +10,6 @@ export {
   handleGetTaskStatus,
   handleRunTests,
   handleFindSimilar,
-  handleUpdateTaskStatus
+  handleUpdateTaskStatus,
+  handleInitProject
 } from './tools.js';
