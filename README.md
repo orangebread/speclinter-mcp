@@ -101,25 +101,14 @@ Add to your `claude_desktop_config.json`:
 
 ### Platform-Specific Setup
 
-#### Windows
-```powershell
-# Using PowerShell - get absolute path
-$specLinterPath = (Get-Location).Path
-Write-Host "Use this path in your MCP config: $specLinterPath"
-
-# Example MCP config for Windows
-# Use forward slashes or escaped backslashes in JSON
-```
-
 #### macOS/Linux
 ```bash
-# Get absolute path
-pwd
-# Use the output in your MCP configuration
-
 # Make CLI executable (if needed)
 chmod +x dist/cli.js
 ```
+
+#### Windows
+No additional setup required - the MCP server will work out of the box.
 
 ### Verification & Testing
 
@@ -188,32 +177,34 @@ your-project/
             └── *.feature
 ```
 
-## CLI Commands
+## Direct CLI Usage
+
+While SpecLinter is primarily designed to work through MCP integration with AI IDEs, you can also run commands directly:
 
 ```bash
-speclinter serve             # Start MCP server
-speclinter test <feature>    # Run feature tests
-speclinter status <feature>  # Show feature status
+node dist/cli.js serve             # Start MCP server
+node dist/cli.js test <feature>    # Run feature tests
+node dist/cli.js status <feature>  # Show feature status
 ```
 
-**Note**: Project initialization is now handled through the MCP `init_project` tool, not CLI.
+**Note**: Project initialization is handled through the MCP `init_project` tool, not CLI.
 
 ## Available MCP Tools
 
 When using SpecLinter through AI IDEs or the MCP protocol, these tools are available:
 
 ### `init_project`
-Initialize SpecLinter in a project directory with default configuration and templates.
+Initialize SpecLinter in your project with default configuration and templates.
 
 **Parameters:**
-- `project_root` (string, optional) - Root directory for the project (defaults to current working directory)
 - `force_reinit` (boolean, optional, default: false) - Force reinitialization if already initialized
 
 **Returns:**
 - Success status and message
-- Project root directory used
 - List of directories created
 - Next steps for configuration
+
+**Note:** Automatically detects your project root directory - no manual configuration needed!
 
 ### `parse_spec`
 Parse a specification and generate structured tasks with quality grading.
@@ -222,7 +213,6 @@ Parse a specification and generate structured tasks with quality grading.
 - `spec` (string, required) - The specification text to parse
 - `feature_name` (string, required) - Name for the feature (used for directory)
 - `context` (string, optional) - Additional context about the implementation
-- `project_root` (string, optional) - Root directory of the project (defaults to current working directory)
 
 **Returns:**
 - Quality grade (A+ to F) and score
@@ -236,8 +226,7 @@ Parse a specification and generate structured tasks with quality grading.
 {
   "spec": "Create a user authentication system with login, logout, and password reset functionality. Users should receive confirmation emails after successful registration.",
   "feature_name": "user-auth",
-  "context": "React web application with Node.js backend",
-  "project_root": "/path/to/my-project"
+  "context": "React web application with Node.js backend"
 }
 ```
 
@@ -312,19 +301,19 @@ SpecLinter provides actionable feedback:
 pnpm build
 
 # Test using MCP tools (through your AI IDE)
-# 1. Initialize a test project:
-#    Call: init_project_speclinter with project_root: "/path/to/test-project"
+# 1. Initialize SpecLinter:
+#    Ask your AI: "Initialize SpecLinter in my project"
 #
 # 2. Parse a specification:
-#    Call: parse_spec_speclinter with:
+#    Ask your AI: "Parse this spec: Create a user registration system with email validation"
+#    Or call parse_spec_speclinter with:
 #    {
 #      "spec": "Create a user registration system with email validation.",
 #      "feature_name": "user-registration",
-#      "context": "Web application",
-#      "project_root": "/path/to/test-project"
+#      "context": "Web application"
 #    }
 #
-# 3. Check the generated files in test-project/tasks/user-registration/
+# 3. Check the generated files in tasks/user-registration/
 ```
 
 ### MCP Server Testing
@@ -422,9 +411,8 @@ For containerized environments:
 ```
 
 **Path Configuration Tips:**
-- **Windows**: Use forward slashes or escaped backslashes: `"C:/Users/yourname/projects/speclinter-mcp/dist/cli.js"`
+- **Windows**: Use forward slashes or escaped backslashes in JSON: `"C:/Users/yourname/projects/speclinter-mcp/dist/cli.js"`
 - **macOS/Linux**: Use absolute paths: `/Users/yourname/projects/speclinter-mcp/dist/cli.js`
-- **Relative paths**: Not recommended for MCP configurations
 - **Environment variables**: Some clients support `${HOME}` or `%USERPROFILE%` expansion
 
 ## Troubleshooting
@@ -627,7 +615,7 @@ This implementation combines clean architecture principles with comprehensive fu
 2. **Replace the placeholder paths** with your actual installation path
 3. **Copy the JSON** to your MCP configuration file
 4. **Restart your AI IDE** to load the new configuration
-5. **Test the integration** by asking your AI to initialize SpecLinter
+5. **Test the integration** by asking your AI: "Initialize SpecLinter in my project"
 
 ### Finding Your Installation Path
 ```bash
