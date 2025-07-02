@@ -54,8 +54,8 @@ yarn build
 
 > **💡 Key Point**: SpecLinter works as an MCP (Model Context Protocol) server. Configure your AI IDE to use it:
 
-#### For Cursor IDE
-Add to your MCP configuration file (usually `~/.cursor/mcp_servers.json`):
+#### 🔧 Standard MCP Configuration
+Add this to your AI IDE's MCP configuration file:
 
 ```json
 {
@@ -69,33 +69,12 @@ Add to your MCP configuration file (usually `~/.cursor/mcp_servers.json`):
 }
 ```
 
-#### For Windsurf IDE
-Add to your MCP configuration:
+#### 📍 Configuration File Locations
+- **Cursor IDE**: `~/.cursor/mcp_servers.json`
+- **Claude Desktop**: `~/Library/Application Support/Claude/claude_desktop_config.json` (macOS) or `%APPDATA%\Claude\claude_desktop_config.json` (Windows)
+- **Windsurf IDE**: Check Windsurf documentation for MCP settings location
 
-```json
-{
-  "speclinter": {
-    "command": "node",
-    "args": ["/absolute/path/to/speclinter-mcp/dist/cli.js", "serve"],
-    "cwd": "/absolute/path/to/speclinter-mcp"
-  }
-}
-```
-
-#### For Claude Desktop
-Add to your `claude_desktop_config.json`:
-
-```json
-{
-  "mcpServers": {
-    "speclinter": {
-      "command": "node",
-      "args": ["/absolute/path/to/speclinter-mcp/dist/cli.js", "serve"],
-      "cwd": "/absolute/path/to/speclinter-mcp"
-    }
-  }
-}
-```
+> **📝 Note**: Some IDEs may use slightly different wrapper formats, but the core server configuration remains the same.
 
 > **⚠️ Important**: Replace `/absolute/path/to/speclinter-mcp` with the actual absolute path to your SpecLinter installation.
 
@@ -331,26 +310,8 @@ echo '{"jsonrpc": "2.0", "id": 1, "method": "initialize", "params": {"protocolVe
 
 ### Complete MCP Configuration Examples
 
-#### Cursor IDE Configuration
-Create or edit `~/.cursor/mcp_servers.json`:
-
-```json
-{
-  "mcpServers": {
-    "speclinter": {
-      "command": "node",
-      "args": ["/Users/yourname/projects/speclinter-mcp/dist/cli.js", "serve"],
-      "cwd": "/Users/yourname/projects/speclinter-mcp",
-      "env": {
-        "NODE_ENV": "production"
-      }
-    }
-  }
-}
-```
-
-#### Windsurf IDE Configuration
-Add to your Windsurf MCP settings:
+#### 🎯 Universal MCP Configuration
+Most MCP-compatible AI IDEs use this standard format:
 
 ```json
 {
@@ -364,32 +325,22 @@ Add to your Windsurf MCP settings:
 }
 ```
 
-#### Claude Desktop Configuration
-Edit `~/Library/Application Support/Claude/claude_desktop_config.json` (macOS) or `%APPDATA%\Claude\claude_desktop_config.json` (Windows):
+> **💡 Works with**: Cursor IDE, Claude Desktop, Windsurf, and most other MCP-compatible clients
+
+#### 🐳 Alternative: Docker Configuration
+For containerized environments:
 
 ```json
 {
   "mcpServers": {
     "speclinter": {
-      "command": "node",
-      "args": ["/Users/yourname/projects/speclinter-mcp/dist/cli.js", "serve"],
-      "cwd": "/Users/yourname/projects/speclinter-mcp"
-    }
-  }
-}
-```
-
-#### Generic MCP Client Configuration
-For any MCP-compatible client:
-
-```json
-{
-  "servers": {
-    "speclinter": {
-      "command": "node",
-      "args": ["/absolute/path/to/speclinter-mcp/dist/cli.js", "serve"],
-      "cwd": "/absolute/path/to/speclinter-mcp",
-      "description": "SpecLinter MCP Server - Transform specifications into structured tasks"
+      "command": "docker",
+      "args": [
+        "run", "--rm", "-i",
+        "-v", "/path/to/your/projects:/workspace",
+        "speclinter-mcp:latest"
+      ],
+      "cwd": "/workspace"
     }
   }
 }
@@ -544,89 +495,35 @@ This implementation combines clean architecture principles with comprehensive fu
 - **MCP Integration**: Full Model Context Protocol support
 - **Testing**: Vitest with comprehensive coverage
 
-## Ready-to-Use Configuration Templates
+## 🎯 Quick Setup Guide
 
-### Quick Copy-Paste Configurations
-
-#### Template 1: Cursor IDE (macOS/Linux)
-```json
-{
-  "mcpServers": {
-    "speclinter": {
-      "command": "node",
-      "args": ["REPLACE_WITH_YOUR_PATH/speclinter-mcp/dist/cli.js", "serve"],
-      "cwd": "REPLACE_WITH_YOUR_PATH/speclinter-mcp"
-    }
-  }
-}
-```
-
-#### Template 2: Cursor IDE (Windows)
-```json
-{
-  "mcpServers": {
-    "speclinter": {
-      "command": "node",
-      "args": ["C:/REPLACE_WITH_YOUR_PATH/speclinter-mcp/dist/cli.js", "serve"],
-      "cwd": "C:/REPLACE_WITH_YOUR_PATH/speclinter-mcp"
-    }
-  }
-}
-```
-
-#### Template 3: Claude Desktop (macOS)
-```json
-{
-  "mcpServers": {
-    "speclinter": {
-      "command": "node",
-      "args": ["/Users/YOURUSERNAME/projects/speclinter-mcp/dist/cli.js", "serve"],
-      "cwd": "/Users/YOURUSERNAME/projects/speclinter-mcp"
-    }
-  }
-}
-```
-
-#### Template 4: Claude Desktop (Windows)
-```json
-{
-  "mcpServers": {
-    "speclinter": {
-      "command": "node",
-      "args": ["C:/Users/YOURUSERNAME/projects/speclinter-mcp/dist/cli.js", "serve"],
-      "cwd": "C:/Users/YOURUSERNAME/projects/speclinter-mcp"
-    }
-  }
-}
-```
-
-#### Template 5: Generic MCP Client
-```json
-{
-  "servers": {
-    "speclinter": {
-      "command": "node",
-      "args": ["ABSOLUTE_PATH_TO/speclinter-mcp/dist/cli.js", "serve"],
-      "cwd": "ABSOLUTE_PATH_TO/speclinter-mcp",
-      "description": "SpecLinter - Transform specs into structured tasks"
-    }
-  }
-}
-```
-
-### Configuration Steps
-1. **Choose the template** that matches your platform and AI IDE
-2. **Replace the placeholder paths** with your actual installation path
-3. **Copy the JSON** to your MCP configuration file
-4. **Restart your AI IDE** to load the new configuration
-5. **Test the integration** by asking your AI: "Initialize SpecLinter in my project"
-
-### Finding Your Installation Path
+### 1️⃣ Find Your Installation Path
 ```bash
 # In your speclinter-mcp directory, run:
 pwd
-# Copy the output and use it in the templates above
+# Copy the output for the next step
 ```
+
+### 2️⃣ Add to Your AI IDE
+Use the standard MCP configuration with your actual path:
+
+```json
+{
+  "mcpServers": {
+    "speclinter": {
+      "command": "node",
+      "args": ["/your/actual/path/to/speclinter-mcp/dist/cli.js", "serve"],
+      "cwd": "/your/actual/path/to/speclinter-mcp"
+    }
+  }
+}
+```
+
+### 3️⃣ Configuration Steps
+1. **📝 Replace the paths** with your actual installation path from step 1
+2. **📁 Add to your MCP config file** (see locations above)
+3. **🔄 Restart your AI IDE** to load the new configuration
+4. **✅ Test**: Ask your AI "Initialize SpecLinter in my project"
 
 ## License
 
