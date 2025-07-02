@@ -15,7 +15,7 @@ export class StorageManager {
    */
   static async createInitializedStorage(rootDir?: string): Promise<Storage> {
     const storage = new Storage(rootDir);
-    
+
     try {
       await storage.initialize();
       return storage;
@@ -24,13 +24,15 @@ export class StorageManager {
       if (error instanceof Error && error.message.includes('not initialized')) {
         console.error('SpecLinter not initialized. Auto-initializing with default configuration...');
         await this.autoInitialize(rootDir || process.cwd());
-        
-        // Try to initialize again after auto-setup
-        await storage.initialize();
+
+        // Create a fresh Storage instance after auto-initialization
+        // This ensures the Storage instance sees the newly created directories
+        const freshStorage = new Storage(rootDir);
+        await freshStorage.initialize();
         console.error('✅ SpecLinter auto-initialized successfully!');
-        return storage;
+        return freshStorage;
       }
-      
+
       // Re-throw other errors
       throw error;
     }

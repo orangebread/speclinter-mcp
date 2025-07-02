@@ -7,6 +7,52 @@ import { promises as fs } from 'fs';
 import path from 'path';
 import { DEFAULT_CONFIG } from './types/config.js';
 
+/**
+ * Resolves the project root directory using multiple fallback strategies
+ */
+async function resolveProjectRoot(explicitRoot?: string): Promise<string> {
+  // 1. Use explicit parameter if provided
+  if (explicitRoot) {
+    return path.resolve(explicitRoot);
+  }
+
+  // 2. Check environment variable
+  if (process.env.SPECLINTER_PROJECT_ROOT) {
+    return path.resolve(process.env.SPECLINTER_PROJECT_ROOT);
+  }
+
+  // 3. Auto-detect by walking up from process.cwd()
+  const detected = await findProjectRoot(process.cwd());
+  if (detected) {
+    return detected;
+  }
+
+  // 4. Fallback to process.cwd()
+  return process.cwd();
+}
+
+/**
+ * Walks up the directory tree looking for a .speclinter directory
+ */
+async function findProjectRoot(startDir: string): Promise<string | null> {
+  let currentDir = path.resolve(startDir);
+  const rootDir = path.parse(currentDir).root;
+
+  while (currentDir !== rootDir) {
+    try {
+      const speclinterPath = path.join(currentDir, '.speclinter');
+      await fs.access(speclinterPath);
+      // Found .speclinter directory
+      return currentDir;
+    } catch {
+      // .speclinter not found, go up one level
+      currentDir = path.dirname(currentDir);
+    }
+  }
+
+  return null;
+}
+
 // Tool handlers
 export async function handleParseSpec(args: any) {
   const {
@@ -19,8 +65,8 @@ export async function handleParseSpec(args: any) {
     skip_similarity_check = false
   } = args;
 
-  // Initialize components - use provided project_root or current working directory
-  const rootDir = project_root || process.cwd();
+  // Initialize components - use robust project root resolution
+  const rootDir = await resolveProjectRoot(project_root);
   const storage = await StorageManager.createInitializedStorage(rootDir);
 
   // Get config through a proper method
@@ -76,20 +122,22 @@ export async function handleParseSpec(args: any) {
 }
 
 export async function handleGetTaskStatus(args: any) {
-  const { feature_name } = args;
-  const storage = await StorageManager.createInitializedStorage();
+  const { feature_name, project_root } = args;
+  const rootDir = await resolveProjectRoot(project_root);
+  const storage = await StorageManager.createInitializedStorage(rootDir);
   const status = await storage.getFeatureStatus(feature_name);
   return status;
 }
 
 export async function handleRunTests(args: any) {
-  const { feature_name, task_id } = args;
+  const { feature_name, task_id, project_root } = args;
 
-  const storage = await StorageManager.createInitializedStorage();
+  const rootDir = await resolveProjectRoot(project_root);
+  const storage = await StorageManager.createInitializedStorage(rootDir);
   const generator = new TaskGenerator();
 
   // Run tests
-  const results = await generator.runFeatureTests(feature_name, task_id);
+  const results = await generator.runFeatureTests(feature_name, task_id, rootDir);
 
   // Update status based on results
   await storage.updateTestResults(feature_name, results);
@@ -105,8 +153,9 @@ export async function handleRunTests(args: any) {
 }
 
 export async function handleFindSimilar(args: any) {
-  const { spec, threshold = 0.8 } = args;
-  const storage = await StorageManager.createInitializedStorage();
+  const { spec, threshold = 0.8, project_root } = args;
+  const rootDir = await resolveProjectRoot(project_root);
+  const storage = await StorageManager.createInitializedStorage(rootDir);
   const similar = await storage.findSimilar(spec, threshold);
 
   return similar.map(s => ({
@@ -119,12 +168,13 @@ export async function handleFindSimilar(args: any) {
 }
 
 export async function handleUpdateTaskStatus(args: any) {
-  const { feature_name, task_id, status, notes } = args;
+  const { feature_name, task_id, status, notes, project_root } = args;
 
   // Validate status
   const validStatus = TaskStatusSchema.parse(status);
 
-  const storage = await StorageManager.createInitializedStorage();
+  const rootDir = await resolveProjectRoot(project_root);
+  const storage = await StorageManager.createInitializedStorage(rootDir);
 
   // Update task status
   const updatedTask = await storage.updateTaskStatus(
@@ -149,7 +199,7 @@ export async function handleUpdateTaskStatus(args: any) {
 export async function handleInitProject(args: any) {
   const { project_root, force_reinit = false } = args;
 
-  const root = project_root || process.cwd();
+  const root = await resolveProjectRoot(project_root);
   const speclinterDir = path.join(root, '.speclinter');
 
   // Check if already initialized

@@ -15,8 +15,9 @@ export class TaskGenerator {
     }));
   }
 
-  async runFeatureTests(featureName: string, taskId?: string): Promise<TestResult> {
-    const featureDir = path.join(process.cwd(), 'tasks', featureName);
+  async runFeatureTests(featureName: string, taskId?: string, projectRoot?: string): Promise<TestResult> {
+    const rootDir = projectRoot || process.cwd();
+    const featureDir = path.join(rootDir, 'tasks', featureName);
     const gherkinDir = path.join(featureDir, 'gherkin');
 
     try {

@@ -57,7 +57,8 @@ class SpecLinterServer {
         title: 'Get Task Status',
         description: 'Get the current status of a feature\'s tasks',
         inputSchema: {
-          feature_name: z.string().describe('Name of the feature to check')
+          feature_name: z.string().describe('Name of the feature to check'),
+          project_root: z.string().optional().describe('Root directory of the project (defaults to auto-detected project root)')
         }
       },
       async (args) => {
@@ -79,7 +80,8 @@ class SpecLinterServer {
         description: 'Run tests for a feature and update task status',
         inputSchema: {
           feature_name: z.string().describe('Name of the feature to test'),
-          task_id: z.string().optional().describe('Optional specific task to test')
+          task_id: z.string().optional().describe('Optional specific task to test'),
+          project_root: z.string().optional().describe('Root directory of the project (defaults to auto-detected project root)')
         }
       },
       async (args) => {
@@ -101,7 +103,8 @@ class SpecLinterServer {
         description: 'Find features similar to a given specification',
         inputSchema: {
           spec: z.string().describe('Specification to find similarities for'),
-          threshold: z.number().default(0.8).describe('Similarity threshold (0.0 to 1.0)')
+          threshold: z.number().default(0.8).describe('Similarity threshold (0.0 to 1.0)'),
+          project_root: z.string().optional().describe('Root directory of the project (defaults to auto-detected project root)')
         }
       },
       async (args) => {
@@ -125,7 +128,8 @@ class SpecLinterServer {
           feature_name: z.string().describe('Name of the feature'),
           task_id: z.string().describe('ID of the task to update'),
           status: z.enum(['not_started', 'in_progress', 'completed', 'blocked']).describe('New status for the task'),
-          notes: z.string().optional().describe('Optional notes about the status change')
+          notes: z.string().optional().describe('Optional notes about the status change'),
+          project_root: z.string().optional().describe('Root directory of the project (defaults to auto-detected project root)')
         }
       },
       async (args) => {
