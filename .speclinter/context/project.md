@@ -1,11 +1,9 @@
 # Project Context
 
 ## Stack
-- **Frontend**: [React/Vue/Angular/etc]
-- **Backend**: [Node.js/Python/Go/etc]
-- **Database**: [PostgreSQL/MongoDB/etc]
-- **Infrastructure**: [AWS/GCP/Azure/Docker/etc]
-- **Testing**: [Jest/Vitest/Cypress/etc]
+- **Database**: SQLite
+- **Testing**: Vitest
+- **Package Manager**: pnpm
 
 ## Constraints
 - Performance requirements

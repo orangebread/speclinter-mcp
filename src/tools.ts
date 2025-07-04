@@ -1,4 +1,3 @@
-import { SpecParser } from './core/parser.js';
 import { TaskGenerator } from './core/generator.js';
 import { Storage } from './core/storage.js';
 import { StorageManager } from './core/storage-manager.js';
@@ -10,7 +9,7 @@ import { DEFAULT_CONFIG } from './types/config.js';
 /**
  * Resolves the project root directory using multiple fallback strategies
  */
-async function resolveProjectRoot(explicitRoot?: string): Promise<string> {
+export async function resolveProjectRoot(explicitRoot?: string): Promise<string> {
   // 1. Use explicit parameter if provided
   if (explicitRoot) {
     return path.resolve(explicitRoot);
@@ -54,72 +53,6 @@ async function findProjectRoot(startDir: string): Promise<string | null> {
 }
 
 // Tool handlers
-export async function handleParseSpec(args: any) {
-  const {
-    spec,
-    feature_name,
-    context,
-    project_root,
-    deduplication_strategy = 'prompt',
-    similarity_threshold,
-    skip_similarity_check = false
-  } = args;
-
-  // Initialize components - use robust project root resolution
-  const rootDir = await resolveProjectRoot(project_root);
-  const storage = await StorageManager.createInitializedStorage(rootDir);
-
-  // Get config through a proper method
-  const config = await storage.getConfig();
-  const parser = new SpecParser(config);
-  const generator = new TaskGenerator();
-
-  // Load project context if available
-  const projectContext = await storage.loadProjectContext();
-
-  // Parse and grade the spec
-  const result = await parser.parse(spec, context, projectContext);
-
-  // Generate tasks
-  const tasks = await generator.createTasks(result, feature_name);
-
-  // Save with deduplication options
-  const saveResult = await storage.saveFeature(feature_name, tasks, result, {
-    onSimilarFound: deduplication_strategy,
-    similarityThreshold: similarity_threshold,
-    skipSimilarityCheck: skip_similarity_check
-  });
-
-  // Handle deduplication results
-  if (saveResult.duplicateInfo) {
-    return {
-      feature_name,
-      grade: result.grade,
-      score: result.score,
-      duplicate_detected: true,
-      duplicate_info: saveResult.duplicateInfo,
-      recommended_action: saveResult.duplicateInfo.recommendedAction,
-      similar_features: saveResult.duplicateInfo.similarFeatures,
-      existing_feature: saveResult.duplicateInfo.existingFeature,
-      files_created: saveResult.files,
-      merge_result: saveResult.mergeResult,
-      message: saveResult.duplicateInfo.type === 'exact_match'
-        ? `Feature '${feature_name}' already exists. Choose an action: merge, replace, or skip.`
-        : `Found ${saveResult.duplicateInfo.similarFeatures.length} similar feature(s). Review and choose an action.`
-    };
-  }
-
-  // Normal response for unique features
-  return {
-    feature_name,
-    grade: result.grade,
-    score: result.score,
-    tasks: tasks.map(t => ({ ...t })),
-    files_created: saveResult.files,
-    merge_result: saveResult.mergeResult,
-    next_steps: `Run tests with: speclinter test ${feature_name}`
-  };
-}
 
 export async function handleGetTaskStatus(args: any) {
   const { feature_name, project_root } = args;
@@ -152,20 +85,7 @@ export async function handleRunTests(args: any) {
   };
 }
 
-export async function handleFindSimilar(args: any) {
-  const { spec, threshold = 0.8, project_root } = args;
-  const rootDir = await resolveProjectRoot(project_root);
-  const storage = await StorageManager.createInitializedStorage(rootDir);
-  const similar = await storage.findSimilar(spec, threshold);
 
-  return similar.map(s => ({
-    feature_name: s.featureName,
-    similarity: s.score,
-    summary: s.summary,
-    task_count: s.taskCount,
-    status: s.status
-  }));
-}
 
 export async function handleUpdateTaskStatus(args: any) {
   const { feature_name, task_id, status, notes, project_root } = args;
@@ -400,3 +320,5 @@ export function Component({ }: Props) {
     architectureTemplate
   );
 }
+
+

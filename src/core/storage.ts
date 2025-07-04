@@ -475,6 +475,27 @@ export class Storage {
       .sort((a, b) => b.score - a.score);
   }
 
+  async getAllFeatures(): Promise<Array<{name: string, spec: string}>> {
+    if (!this.db) throw new Error('Database not initialized');
+
+    const features = this.db.prepare('SELECT name, spec FROM features').all() as Array<{name: string, spec: string}>;
+    return features;
+  }
+
+  async saveFeatureFromAI(
+    featureName: string,
+    tasks: Task[],
+    parseResult: ParseResult,
+    aiAnalysis: any,
+    options: SaveFeatureOptions = {}
+  ): Promise<SaveFeatureResult> {
+    if (!this.db || !this.config) throw new Error('Storage not initialized');
+
+    // For now, use the existing saveFeature method
+    // In the future, we could store AI-specific metadata
+    return await this.saveFeature(featureName, tasks, parseResult, options);
+  }
+
   private calculateSimilarity(text1: string, text2: string): number {
     // Enhanced similarity calculation with multiple factors
     const wordSimilarity = this.calculateWordSimilarity(text1, text2);

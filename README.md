@@ -4,13 +4,13 @@ Transform specifications into structured tasks with built-in quality gates for A
 
 ## ✨ Features
 
-- **📊 Quality Grading**: Analyze specs with actionable feedback using configurable rules
+- **🤖 AI-Leveraged Analysis**: Semantic understanding of specifications vs. regex patterns
+- **📊 Quality Grading**: A+ to F grading with actionable improvement suggestions
 - **🔧 Task Generation**: Break down specs into implementable tasks with dependencies
 - **🧪 Test Creation**: Generate Gherkin scenarios automatically
-- **🎨 Project Context**: Use your stack and patterns for better task generation
-- **🤖 MCP Integration**: Works seamlessly in AI IDEs like Cursor and Windsurf
-- **🛡️ Type Safety**: Full TypeScript implementation with Zod validation
-- **🏗️ Modern Architecture**: Clean separation of concerns with better-sqlite3
+- **🎨 Project Context**: Auto-detect tech stack and patterns for better task generation
+- **🔍 Similarity Detection**: AI-powered semantic analysis with database-backed feature comparison
+- **🛡️ Type Safety**: Full TypeScript with Zod validation
 
 ## 🚀 Quick Start
 
@@ -20,42 +20,21 @@ Transform specifications into structured tasks with built-in quality gates for A
 
 ### 📦 Installation
 
-#### Using pnpm (⭐ recommended)
 ```bash
-# Install pnpm if you haven't already
+# Install pnpm if you haven't already (recommended)
 npm install -g pnpm
 
-# Install dependencies
-pnpm install
+# Install dependencies and build
+pnpm install && pnpm build
 
-# Build the project
-pnpm build
-```
-
-#### Using npm
-```bash
-# Install dependencies
-npm install
-
-# Build the project
-npm run build
-```
-
-#### Using yarn
-```bash
-# Install dependencies
-yarn install
-
-# Build the project
-yarn build
+# Alternative: use npm or yarn
+# npm install && npm run build
+# yarn install && yarn build
 ```
 
 ### 🔌 MCP Integration Setup
 
-> **💡 Key Point**: SpecLinter works as an MCP (Model Context Protocol) server. Configure your AI IDE to use it:
-
-#### 🔧 Standard MCP Configuration
-Add this to your AI IDE's MCP configuration file:
+SpecLinter works as an MCP (Model Context Protocol) server. Add this to your AI IDE's MCP configuration file:
 
 ```json
 {
@@ -69,29 +48,15 @@ Add this to your AI IDE's MCP configuration file:
 }
 ```
 
-#### 📍 Configuration File Locations
+**Configuration File Locations:**
 - **Cursor IDE**: `~/.cursor/mcp_servers.json`
 - **Claude Desktop**: `~/Library/Application Support/Claude/claude_desktop_config.json` (macOS) or `%APPDATA%\Claude\claude_desktop_config.json` (Windows)
 - **Windsurf IDE**: Check Windsurf documentation for MCP settings location
 
-> **📝 Note**: Some IDEs may use slightly different wrapper formats, but the core server configuration remains the same.
-
 > **⚠️ Important**: Replace `/absolute/path/to/speclinter-mcp` with the actual absolute path to your SpecLinter installation.
-
-### 💻 Platform-Specific Setup
-
-#### 🍎 macOS/Linux
-```bash
-# Make CLI executable (if needed)
-chmod +x dist/cli.js
-```
-
-#### 🪟 Windows
-✅ No additional setup required - the MCP server will work out of the box.
 
 ### ✅ Verification & Testing
 
-#### 🧪 Test the Installation
 ```bash
 # 1. Verify Node.js version
 node --version  # Should be 18+
@@ -100,86 +65,68 @@ node --version  # Should be 18+
 node dist/cli.js serve
 # Should start without errors (Ctrl+C to stop)
 
-# 3. Check MCP tools are available
-# In your AI IDE, ask: "What SpecLinter tools are available?"
+# 3. Make CLI executable on macOS/Linux (if needed)
+chmod +x dist/cli.js
 ```
 
-#### 🎯 Verify MCP Integration
-Once your AI IDE is configured:
-
+**Verify MCP Integration:**
 1. **🤖 Ask your AI**: "Initialize SpecLinter in my project"
-2. **🔧 Or use the tool directly**: Call `init_project_speclinter`
-3. **📁 Check for success**: Look for `.speclinter/` directory creation
-4. **📝 Test parsing**: Ask to parse a simple specification
+2. **📁 Check for success**: Look for `.speclinter/` directory creation
+3. **📝 Test parsing**: "Parse this spec: Create a user login form with email validation"
 
-#### 🌟 Example First Use
+**Common Usage:**
 ```
-# In your AI IDE chat:
-"Please initialize SpecLinter in my current project, then parse this spec:
-'Create a user login form with email validation and password strength checking'"
-```
-
-> **💡 Pro Tip**: No need to specify paths - SpecLinter automatically detects your project structure!
-
-### 🎉 Getting Started
-Once configured and verified, use your AI IDE to work with specifications:
-
-```
-# 🚀 Initialize in your project
 "Initialize SpecLinter in my project"
-
-# 📝 Parse specifications
+"Analyze my codebase to detect patterns and tech stack"
 "Parse this spec: [your specification here]"
-
-# 📊 Check task status
 "Show me the status of my tasks"
-
-# 🧪 Run tests
 "Run tests for my feature"
 ```
 
-> **🎯 That's it!** SpecLinter handles all the complexity behind the scenes.
-
 ## 📁 Project Structure
+
+SpecLinter creates this structure when initialized:
 
 ```
 your-project/
 ├── .speclinter/
+│   ├── config.json            # Configuration
 │   ├── speclinter.db          # SQLite database
-│   ├── config.json            # Type-safe configuration
+│   ├── cache/                 # Analysis cache
 │   └── context/               # Project context
-│       ├── project.md         # Stack, constraints
+│       ├── project.md         # Tech stack, constraints
 │       ├── patterns.md        # Code patterns
 │       └── architecture.md    # Architecture decisions
 └── tasks/
     └── [feature-name]/
-        ├── _active.md         # Current status
-        ├── task_01_*.md       # Individual tasks
+        ├── _active.md         # Live status dashboard
+        ├── task_01_*.md       # Individual task files
         ├── meta.json          # Feature metadata
-        └── gherkin/           # Test files
+        └── gherkin/           # Test scenarios
             └── *.feature
 ```
 
-## 💻 Direct CLI Usage
+## 💻 CLI Commands
 
-> **ℹ️ Note**: SpecLinter is primarily designed to work through MCP integration with AI IDEs, but you can also run commands directly:
+SpecLinter is primarily designed for MCP integration, but includes these CLI commands:
 
 ```bash
-node dist/cli.js serve             # 🚀 Start MCP server
-node dist/cli.js test <feature>    # 🧪 Run feature tests
-node dist/cli.js status <feature>  # 📊 Show feature status
+node dist/cli.js serve             # Start MCP server
+node dist/cli.js test <feature>    # Run feature tests
+node dist/cli.js status <feature>  # Show feature status
 ```
 
-> **💡 Important**: Project initialization is handled through the MCP `init_project` tool, not CLI.
+> **💡 Note**: Project initialization uses the MCP `speclinter_init_project` tool.
 
 ## 🛠️ Available MCP Tools
 
 When using SpecLinter through AI IDEs or the MCP protocol, these tools are available:
 
-### 🚀 `init_project`
+### 🚀 `speclinter_init_project`
 Initialize SpecLinter in your project with default configuration and templates.
 
 **Parameters:**
+- `project_root` (string, optional) - Root directory for the project (defaults to current working directory)
 - `force_reinit` (boolean, optional, default: false) - Force reinitialization if already initialized
 
 **Returns:**
@@ -189,65 +136,137 @@ Initialize SpecLinter in your project with default configuration and templates.
 
 > **🎯 Auto-Magic**: Automatically detects your project root directory - no manual configuration needed!
 
-### 📝 `parse_spec`
-Parse a specification and generate structured tasks with quality grading.
+### 🤖 AI-Leveraged Codebase Analysis
+
+#### 🔍 `speclinter_analyze_codebase_prepare`
+**Step 1**: Collect codebase files and prepare AI analysis prompt for comprehensive pattern detection.
+
+**Parameters:**
+- `project_root` (string, optional) - Root directory of the project (defaults to auto-detected project root)
+- `analysis_depth` (enum, optional, default: 'standard') - Depth of analysis: 'quick', 'standard', or 'deep'
+- `max_files` (number, optional, default: 50) - Maximum number of files to analyze
+- `max_file_size` (number, optional, default: 50000) - Maximum file size in bytes to include
+
+**Returns:**
+- 🎯 Structured AI analysis prompt
+- 📁 List of collected files for analysis
+- 🔧 Follow-up tool instructions
+
+#### 🔄 `speclinter_analyze_codebase_process`
+**Step 2**: Process AI codebase analysis results and update SpecLinter context files.
+
+**Parameters:**
+- `analysis` (object, required) - AI analysis results matching AICodebaseAnalysisSchema
+- `project_root` (string, optional) - Root directory of the project
+
+**Returns:**
+- ✅ Updated context files with AI insights
+- 📊 Detected tech stack and patterns
+- 💡 Code quality assessment and recommendations
+
+### 🤖 AI-Leveraged Specification Parsing
+
+#### 📝 `speclinter_parse_spec_prepare`
+**Step 1**: Prepare specification for AI analysis and return structured analysis prompt.
 
 **Parameters:**
 - `spec` (string, required) - The specification text to parse
 - `feature_name` (string, required) - Name for the feature (used for directory)
 - `context` (string, optional) - Additional context about the implementation
+- `project_root` (string, optional) - Root directory of the project
 
 **Returns:**
-- 📊 Quality grade (A+ to F) and score
-- 🔧 Generated tasks with acceptance criteria
+- 🎯 Structured AI analysis prompt with project context
+- 📋 Existing project patterns and tech stack information
+- 🔧 Follow-up tool instructions
+
+#### 🔄 `speclinter_parse_spec_process`
+**Step 2**: Process AI specification analysis results and create SpecLinter tasks.
+
+**Parameters:**
+- `analysis` (object, required) - AI analysis results matching AISpecAnalysisSchema
+- `feature_name` (string, required) - Name for the feature
+- `original_spec` (string, optional) - Original specification text
+- `project_root` (string, optional) - Root directory of the project
+- `deduplication_strategy` (enum, optional, default: 'prompt') - How to handle duplicates: 'prompt', 'merge', 'replace', 'skip'
+- `similarity_threshold` (number, optional) - Similarity threshold for detecting duplicates (0.0 to 1.0)
+- `skip_similarity_check` (boolean, optional, default: false) - Skip similarity checking entirely
+
+**Returns:**
+- 📊 Quality grade (A+ to F) and score with AI insights
+- 🔧 Generated tasks with intelligent acceptance criteria
 - 📄 Files created (task files, Gherkin scenarios)
-- 💡 Improvement suggestions
-- 🔍 Similar existing features
+- 💡 AI-powered improvement suggestions
+- 🔍 Semantic similarity analysis
 
-**Example:**
-```json
-{
-  "spec": "Create a user authentication system with login, logout, and password reset functionality. Users should receive confirmation emails after successful registration.",
-  "feature_name": "user-auth",
-  "context": "React web application with Node.js backend"
-}
-```
+### 🤖 AI-Leveraged Similarity Analysis
 
-### 📊 `get_task_status`
+#### 🔍 `speclinter_find_similar_prepare`
+**Step 1**: Prepare specification for AI similarity analysis against existing features.
+
+**Parameters:**
+- `spec` (string, required) - Specification to find similarities for
+- `threshold` (number, optional, default: 0.8) - Similarity threshold (0.0 to 1.0)
+- `project_root` (string, optional) - Root directory of the project
+
+**Returns:**
+- 🎯 Structured AI similarity analysis prompt
+- 📋 Existing features for comparison
+- 🔧 Follow-up tool instructions
+
+#### 🔄 `speclinter_find_similar_process`
+**Step 2**: Process AI similarity analysis results and return recommendations.
+
+**Parameters:**
+- `analysis` (object, required) - AI analysis results matching AISimilarityAnalysisSchema
+- `threshold` (number, optional, default: 0.8) - Similarity threshold used
+- `project_root` (string, optional) - Root directory of the project
+
+**Returns:**
+- 📋 Semantic similarity analysis with confidence scores
+- 💡 Intelligent recommendations (merge/separate/refactor)
+- 📊 Detailed difference analysis
+
+### 📊 `speclinter_get_task_status`
 Get the current status and progress of a feature's tasks.
 
 **Parameters:**
 - `feature_name` (string, required) - Name of the feature to check
+- `project_root` (string, optional) - Root directory of the project
 
 **Returns:**
 - 📈 Total, completed, in-progress, and blocked task counts
 - 📊 Overall progress percentage
 - 🕒 Last updated timestamp
 
-### 🔍 `find_similar`
-Find existing features similar to a given specification to avoid duplicate work.
+### 🧪 `speclinter_run_tests`
+Run tests for a feature and update task status.
 
 **Parameters:**
-- `spec` (string, required) - Specification to find similarities for
-- `threshold` (number, optional, default: 0.8) - Similarity threshold (0.0 to 1.0)
+- `feature_name` (string, required) - Name of the feature to test
+- `task_id` (string, optional) - Optional specific task to test
+- `project_root` (string, optional) - Root directory of the project
 
 **Returns:**
-- 📋 List of similar features with similarity scores
-- 📊 Feature summaries and task counts
-- ⚡ Status of similar features
+- ✅ Test results with pass/fail counts
+- 📊 Coverage information
+- 📝 Detailed test output
 
-### ✏️ `update_task_status`
+### ✏️ `speclinter_update_task_status`
 Update the status of a specific task and regenerate active files.
 
 **Parameters:**
 - `feature_name` (string, required) - Name of the feature
 - `task_id` (string, required) - ID of the task to update
-- `status` (string, required) - New status: `not_started`, `in_progress`, `completed`, `blocked`
+- `status` (enum, required) - New status: `not_started`, `in_progress`, `completed`, `blocked`
 - `notes` (string, optional) - Optional notes about the status change
+- `project_root` (string, optional) - Root directory of the project
 
 **Returns:**
 - 📝 Updated task information
 - ✅ Confirmation of status change
+
+
 
 ## 📊 Quality Grading System
 
@@ -276,254 +295,28 @@ SpecLinter provides actionable feedback:
 - 📝 Structure as user stories when appropriate
 - 📖 Expand brief specifications with implementation details
 
-## Testing SpecLinter Locally
 
-### Quick Test
-```bash
-# Build the project
-pnpm build
 
-# Test using MCP tools (through your AI IDE)
-# 1. Initialize SpecLinter:
-#    Ask your AI: "Initialize SpecLinter in my project"
-#
-# 2. Parse a specification:
-#    Ask your AI: "Parse this spec: Create a user registration system with email validation"
-#    Or call parse_spec_speclinter with:
-#    {
-#      "spec": "Create a user registration system with email validation.",
-#      "feature_name": "user-registration",
-#      "context": "Web application"
-#    }
-#
-# 3. Check the generated files in tasks/user-registration/
-```
-
-### MCP Server Testing
-```bash
-# Start the MCP server
-node dist/cli.js serve
-
-# In another terminal, send a test message
-echo '{"jsonrpc": "2.0", "id": 1, "method": "initialize", "params": {"protocolVersion": "2024-11-05", "capabilities": {}, "clientInfo": {"name": "test", "version": "1.0.0"}}}' | node dist/cli.js serve
-```
-
-### Complete MCP Configuration Examples
-
-#### 🎯 Universal MCP Configuration
-Most MCP-compatible AI IDEs use this standard format:
-
-```json
-{
-  "mcpServers": {
-    "speclinter": {
-      "command": "node",
-      "args": ["/Users/yourname/projects/speclinter-mcp/dist/cli.js", "serve"],
-      "cwd": "/Users/yourname/projects/speclinter-mcp"
-    }
-  }
-}
-```
-
-> **💡 Works with**: Cursor IDE, Claude Desktop, Windsurf, and most other MCP-compatible clients
-
-#### 🐳 Alternative: Docker Configuration
-For containerized environments:
-
-```json
-{
-  "mcpServers": {
-    "speclinter": {
-      "command": "docker",
-      "args": [
-        "run", "--rm", "-i",
-        "-v", "/path/to/your/projects:/workspace",
-        "speclinter-mcp:latest"
-      ],
-      "cwd": "/workspace"
-    }
-  }
-}
-```
-
-#### Docker Configuration (Optional)
-For containerized environments:
-
-```json
-{
-  "mcpServers": {
-    "speclinter": {
-      "command": "docker",
-      "args": [
-        "run", "--rm", "-i",
-        "-v", "/path/to/your/projects:/workspace",
-        "speclinter-mcp:latest"
-      ],
-      "cwd": "/workspace"
-    }
-  }
-}
-```
-
-**Path Configuration Tips:**
-- **Windows**: Use forward slashes or escaped backslashes in JSON: `"C:/Users/yourname/projects/speclinter-mcp/dist/cli.js"`
-- **macOS/Linux**: Use absolute paths: `/Users/yourname/projects/speclinter-mcp/dist/cli.js`
-- **Environment variables**: Some clients support `${HOME}` or `%USERPROFILE%` expansion
-
-## Troubleshooting
-
-### Common Issues
-
-#### "Command not found" or "Module not found"
-- **Ensure Node.js 18+ is installed**: `node --version`
-- **Verify the build completed**: Check that `dist/` directory exists
-- **Use absolute paths**: Relative paths in MCP configs often fail
-- **Check permissions**: On Unix systems, ensure `dist/cli.js` is executable
-
-#### Windows-Specific Issues
-```powershell
-# If you get permission errors
-Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
-
-# Use forward slashes in JSON configs
-"C:/Users/yourname/projects/speclinter-mcp/dist/cli.js"
-
-# Or escape backslashes
-"C:\\Users\\yourname\\projects\\speclinter-mcp\\dist\\cli.js"
-```
-
-#### macOS/Linux-Specific Issues
-```bash
-# Make CLI executable
-chmod +x dist/cli.js
-
-# If you get "command not found"
-which node  # Should return a path
-npm list -g  # Check global packages
-```
-
-#### MCP Connection Issues
-1. **Verify the server starts**: `node dist/cli.js serve`
-2. **Check the path**: Ensure absolute paths in MCP config
-3. **Restart your AI IDE**: After changing MCP configuration
-4. **Check logs**: Most AI IDEs have MCP server logs
-
-#### Database/Permission Issues
-```bash
-# If .speclinter directory creation fails
-mkdir -p .speclinter
-chmod 755 .speclinter
-
-# If SQLite issues occur
-rm -rf .speclinter/speclinter.db
-# Then reinitialize
-```
-
-### Getting Help
-- **Check the logs**: Most AI IDEs show MCP server output
-- **Test manually**: Run `node dist/cli.js serve` to test the server
-- **Verify paths**: Use absolute paths and check they exist
-- **Platform differences**: Windows uses different path separators
-
-## Development
-
-### Local Development Setup
+## 🔧 Development
 
 ```bash
-# Clone and setup
 git clone <repository-url>
 cd speclinter-mcp
+pnpm install && pnpm build
 
-# Install dependencies (choose one)
-pnpm install    # Recommended
-npm install     # Alternative
-yarn install    # Alternative
-
-# Build for production
-pnpm build
-
-# Watch mode for development
-pnpm build --watch
-
-# Run tests
-pnpm test
-
-# Lint code
-pnpm lint
-
-# Start MCP server for testing
-pnpm start
+# Available scripts
+pnpm build        # Build for production
+pnpm test         # Run tests
+pnpm lint         # Lint code
+pnpm dev          # Watch mode
 ```
 
-### Cross-Platform Development
+## 🏗️ Architecture
 
-#### Windows Development
-```powershell
-# Use PowerShell or Command Prompt
-npm install -g pnpm  # If using pnpm
-pnpm install
-pnpm build
-
-# Test the server
-node dist/cli.js serve
-```
-
-#### macOS/Linux Development
-```bash
-# Install pnpm via npm or homebrew
-npm install -g pnpm
-# or: brew install pnpm
-
-pnpm install
-pnpm build
-
-# Make executable
-chmod +x dist/cli.js
-
-# Test the server
-./dist/cli.js serve
-```
-
-## Architecture
-
-This implementation combines clean architecture principles with comprehensive functionality:
-
-- **Type Safety**: Full TypeScript with Zod validation
-- **Modern Patterns**: ESM modules, async/await, proper error handling
-- **Database**: better-sqlite3 for optimal performance
-- **CLI**: Commander.js with rich terminal UI
-- **MCP Integration**: Full Model Context Protocol support
-- **Testing**: Vitest with comprehensive coverage
-
-## 🎯 Quick Setup Guide
-
-### 1️⃣ Find Your Installation Path
-```bash
-# In your speclinter-mcp directory, run:
-pwd
-# Copy the output for the next step
-```
-
-### 2️⃣ Add to Your AI IDE
-Use the standard MCP configuration with your actual path:
-
-```json
-{
-  "mcpServers": {
-    "speclinter": {
-      "command": "node",
-      "args": ["/your/actual/path/to/speclinter-mcp/dist/cli.js", "serve"],
-      "cwd": "/your/actual/path/to/speclinter-mcp"
-    }
-  }
-}
-```
-
-### 3️⃣ Configuration Steps
-1. **📝 Replace the paths** with your actual installation path from step 1
-2. **📁 Add to your MCP config file** (see locations above)
-3. **🔄 Restart your AI IDE** to load the new configuration
-4. **✅ Test**: Ask your AI "Initialize SpecLinter in my project"
+- **🔒 Type Safety**: Full TypeScript with Zod validation
+- **🤖 AI-Leveraged**: Two-step pattern for semantic analysis
+- **💾 Database**: SQLite for task management, feature history, and AI analysis input
+- **🔌 MCP Integration**: Full Model Context Protocol support
 
 ## License
 

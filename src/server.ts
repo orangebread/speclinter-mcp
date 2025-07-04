@@ -2,13 +2,12 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { z } from 'zod';
 import {
-  handleParseSpec,
   handleGetTaskStatus,
   handleRunTests,
-  handleFindSimilar,
   handleUpdateTaskStatus,
   handleInitProject
 } from './tools.js';
+import { registerAITools } from './ai-server-tools.js';
 
 class SpecLinterServer {
   private server: McpServer;
@@ -23,36 +22,10 @@ class SpecLinterServer {
   }
 
   private setupTools() {
-    // Parse specification tool
-    this.server.registerTool(
-      'parse_spec',
-      {
-        title: 'Parse Specification',
-        description: 'Parse a specification and generate structured tasks with tests',
-        inputSchema: {
-          spec: z.string().describe('The specification text to parse'),
-          feature_name: z.string().describe('Name for the feature (used for directory)'),
-          context: z.string().optional().describe('Additional context about the implementation'),
-          project_root: z.string().optional().describe('Root directory of the project (defaults to current working directory)'),
-          deduplication_strategy: z.enum(['prompt', 'merge', 'replace', 'skip']).optional().default('prompt').describe('How to handle duplicate/similar features'),
-          similarity_threshold: z.number().optional().describe('Similarity threshold for detecting duplicates (0.0 to 1.0)'),
-          skip_similarity_check: z.boolean().optional().default(false).describe('Skip similarity checking entirely')
-        }
-      },
-      async (args) => {
-        const result = await handleParseSpec(args);
-        return {
-          content: [{
-            type: 'text',
-            text: JSON.stringify(result, null, 2)
-          }]
-        };
-      }
-    );
 
     // Get task status tool
     this.server.registerTool(
-      'get_task_status',
+      'speclinter_get_task_status',
       {
         title: 'Get Task Status',
         description: 'Get the current status of a feature\'s tasks',
@@ -74,7 +47,7 @@ class SpecLinterServer {
 
     // Run tests tool
     this.server.registerTool(
-      'run_tests',
+      'speclinter_run_tests',
       {
         title: 'Run Tests',
         description: 'Run tests for a feature and update task status',
@@ -95,32 +68,9 @@ class SpecLinterServer {
       }
     );
 
-    // Find similar features tool
-    this.server.registerTool(
-      'find_similar',
-      {
-        title: 'Find Similar Features',
-        description: 'Find features similar to a given specification',
-        inputSchema: {
-          spec: z.string().describe('Specification to find similarities for'),
-          threshold: z.number().default(0.8).describe('Similarity threshold (0.0 to 1.0)'),
-          project_root: z.string().optional().describe('Root directory of the project (defaults to auto-detected project root)')
-        }
-      },
-      async (args) => {
-        const result = await handleFindSimilar(args);
-        return {
-          content: [{
-            type: 'text',
-            text: JSON.stringify(result, null, 2)
-          }]
-        };
-      }
-    );
-
     // Update task status tool
     this.server.registerTool(
-      'update_task_status',
+      'speclinter_update_task_status',
       {
         title: 'Update Task Status',
         description: 'Update the status of a specific task',
@@ -145,7 +95,7 @@ class SpecLinterServer {
 
     // Initialize project tool
     this.server.registerTool(
-      'init_project',
+      'speclinter_init_project',
       {
         title: 'Initialize SpecLinter Project',
         description: 'Initialize SpecLinter in a project directory with default configuration and templates',
@@ -164,6 +114,9 @@ class SpecLinterServer {
         };
       }
     );
+
+    // Register AI-leveraged tools
+    registerAITools(this.server);
   }
 
   async run() {

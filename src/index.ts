@@ -7,10 +7,8 @@ export { SpecLinterServer, startServer } from './server.js';
 export * from './types/index.js';
 export * from './types/config.js';
 export {
-  handleParseSpec,
   handleGetTaskStatus,
   handleRunTests,
-  handleFindSimilar,
   handleUpdateTaskStatus,
   handleInitProject
 } from './tools.js';
