@@ -8,6 +8,10 @@ import {
   handleFindSimilarAI,
   handleProcessSimilarityAnalysisAI
 } from '../src/ai-tools.js';
+import {
+  AIContextFilesSchema,
+  AICodebaseAnalysisSchema
+} from '../src/types/ai-schemas.js';
 
 describe('AI-Leveraged Tools', () => {
   const testProjectRoot = path.join(process.cwd(), 'test-temp');
@@ -123,7 +127,7 @@ describe('App', () => {
   });
 
   describe('handleAnalyzeCodebaseAI', () => {
-    it('should collect files and return AI analysis prompt', async () => {
+    it('should collect files and return AI analysis prompt with context generation', async () => {
       const result = await handleAnalyzeCodebaseAI({
         project_root: testProjectRoot,
         max_files: 10
@@ -134,7 +138,10 @@ describe('App', () => {
       expect(result.analysis_prompt).toContain('Analyze the provided codebase files');
       expect(result.analysis_prompt).toContain('package.json');
       expect(result.analysis_prompt).toContain('app.ts');
+      expect(result.analysis_prompt).toContain('generate complete, professional context files');
+      expect(result.analysis_prompt).toContain('AICodebaseAnalysisWithContextSchema');
       expect(result.follow_up_tool).toBe('update_context_files_ai');
+      expect(result.schema).toBe('AICodebaseAnalysisWithContextSchema');
       expect(result.files_analyzed).toBeGreaterThan(0);
     });
 
@@ -150,7 +157,7 @@ describe('App', () => {
   });
 
   describe('handleUpdateContextFilesAI', () => {
-    it('should process valid AI analysis and update context files', async () => {
+    it('should process valid AI analysis and context files (Option A)', async () => {
       const mockAnalysis = {
         techStack: {
           frontend: 'React',
@@ -218,17 +225,109 @@ describe('App', () => {
         ]
       };
 
+      const mockContextFiles = {
+        projectMd: `# Test Project
+
+## Stack (AI Confidence: 95%)
+- **Frontend**: React
+- **Backend**: Express
+- **Testing**: Vitest
+- **Package Manager**: npm
+
+## Architecture Decisions
+
+### System Architecture
+**Decision**: Monolith architecture
+**Context**: by-type organization pattern
+**Consequences**:
+- ✅ Project uses modern JavaScript/TypeScript patterns
+- ✅ Good error handling practices in API routes
+- ⚠️ Add more comprehensive error handling`,
+
+        patternsMd: `# AI-Discovered Code Patterns
+
+## Error Handling Patterns
+
+### Try-Catch Error Handling (Confidence: 90%)
+Standard try-catch error handling pattern
+
+**Found in**: src/app.ts
+
+\`\`\`typescript
+try { ... } catch (error) { ... }
+\`\`\`
+
+## API Patterns
+
+### Express Route Handler (Confidence: 95%)
+Express.js route definition pattern
+
+**Found in**: src/app.ts
+
+\`\`\`typescript
+app.get("/api/users", async (req, res) => { ... })
+\`\`\`
+
+## Testing Patterns
+
+### Vitest Test Suite (Confidence: 90%)
+Standard Vitest test structure
+
+**Found in**: src/app.test.ts
+
+\`\`\`typescript
+describe("App", () => { it("should...", () => { ... }); });
+\`\`\`
+
+## AI Insights
+- Project uses modern JavaScript/TypeScript patterns
+- Good error handling practices in API routes
+
+## AI Recommendations
+- Add more comprehensive error handling
+- Consider adding input validation middleware`,
+
+        architectureMd: `# System Architecture
+
+## Overview
+This project follows a **monolith** architecture with by-type organization pattern.
+
+## Key Components
+- **Frontend**: React-based user interface
+- **Backend**: Express.js server
+- **Testing**: Vitest testing framework
+
+## Design Decisions
+
+### Architecture Pattern
+- **Choice**: Monolith architecture
+- **Rationale**: Suitable for the current project scope and team size
+- **Trade-offs**: Simpler deployment but potential scalability concerns
+
+### Technology Stack
+- **Frontend Framework**: React (confidence: 95%)
+- **Backend Framework**: Express.js
+- **Testing Strategy**: Vitest for unit and integration tests
+
+## Quality Assessment
+- **Overall Score**: 85/100
+- **Maintainability**: 80/100
+- **Documentation**: 70/100`
+      };
+
       const result = await handleUpdateContextFilesAI({
         analysis: mockAnalysis,
+        contextFiles: mockContextFiles,
         project_root: testProjectRoot
       });
 
       expect(result.success).toBe(true);
-      expect(result.updatedFiles).toHaveLength(2);
+      expect(result.updatedFiles).toHaveLength(3); // Now includes architecture.md
       expect(result.ai_confidence).toBe(0.95);
       expect(result.analysis?.codeQuality.overallScore).toBe(85);
+      expect(result.content_generation).toBe('complete_ai_generated');
 
-      // Verify context files were created
+      // Verify context files were created with AI-generated content
       const projectFile = await fs.readFile(
         path.join(testProjectRoot, '.speclinter', 'context', 'project.md'),
         'utf-8'
@@ -236,6 +335,7 @@ describe('App', () => {
       expect(projectFile).toContain('React');
       expect(projectFile).toContain('Express');
       expect(projectFile).toContain('AI Confidence: 95%');
+      expect(projectFile).toContain('Architecture Decisions');
 
       const patternsFile = await fs.readFile(
         path.join(testProjectRoot, '.speclinter', 'context', 'patterns.md'),
@@ -245,11 +345,31 @@ describe('App', () => {
       expect(patternsFile).toContain('Express Route Handler');
       expect(patternsFile).toContain('AI Insights');
       expect(patternsFile).toContain('modern JavaScript/TypeScript patterns');
+
+      // Verify architecture.md was created
+      const architectureFile = await fs.readFile(
+        path.join(testProjectRoot, '.speclinter', 'context', 'architecture.md'),
+        'utf-8'
+      );
+      expect(architectureFile).toContain('System Architecture');
+      expect(architectureFile).toContain('Monolith architecture');
+      expect(architectureFile).toContain('**Overall Score**: 85/100');
+    });
+
+    it('should handle missing contextFiles parameter', async () => {
+      const result = await handleUpdateContextFilesAI({
+        analysis: { invalid: 'data' },
+        project_root: testProjectRoot
+      });
+
+      expect(result.success).toBe(false);
+      expect(result.error).toBe('Both analysis and contextFiles data are required');
     });
 
     it('should handle invalid AI analysis gracefully', async () => {
       const result = await handleUpdateContextFilesAI({
         analysis: { invalid: 'data' },
+        contextFiles: { invalid: 'data' },
         project_root: testProjectRoot
       });
 
@@ -409,6 +529,55 @@ describe('App', () => {
     });
   });
 
+  describe('Option A Schema Tests', () => {
+    it('should validate AIContextFilesSchema correctly', () => {
+      const validContextFiles = {
+        projectMd: '# Project\n\n## Stack\n- **Language**: TypeScript',
+        patternsMd: '# Code Patterns\n\n## Error Handling\n*No patterns detected*',
+        architectureMd: '# Architecture\n\n## System Design\nMonolith architecture'
+      };
+
+      const result = AIContextFilesSchema.safeParse(validContextFiles);
+      expect(result.success).toBe(true);
+    });
+
+    it('should reject invalid AIContextFilesSchema', () => {
+      const invalidContextFiles = {
+        projectMd: '# Project',
+        // Missing patternsMd and architectureMd
+      };
+
+      const result = AIContextFilesSchema.safeParse(invalidContextFiles);
+      expect(result.success).toBe(false);
+    });
+
+    it('should validate complete AI-generated content structure', () => {
+      const mockAnalysis = {
+        techStack: { confidence: 0.9 },
+        errorPatterns: [],
+        apiPatterns: [],
+        testPatterns: [],
+        namingConventions: { fileNaming: 'kebab-case', variableNaming: 'camelCase', functionNaming: 'camelCase', examples: [] },
+        projectStructure: { srcDir: 'src', testDir: 'test', configFiles: [], entryPoints: [], architecture: 'monolith', organizationPattern: 'by-type' },
+        codeQuality: { overallScore: 80, maintainability: 75, documentation: 60, issues: [] },
+        insights: [],
+        recommendations: []
+      };
+
+      const mockContextFiles = {
+        projectMd: '# Project\n\nComplete AI-generated project documentation',
+        patternsMd: '# Patterns\n\nComplete AI-generated patterns documentation',
+        architectureMd: '# Architecture\n\nComplete AI-generated architecture documentation'
+      };
+
+      const analysisResult = AICodebaseAnalysisSchema.safeParse(mockAnalysis);
+      const contextResult = AIContextFilesSchema.safeParse(mockContextFiles);
+
+      expect(analysisResult.success).toBe(true);
+      expect(contextResult.success).toBe(true);
+    });
+  });
+
   describe('Integration Test', () => {
     it('should complete full AI-leveraged codebase analysis workflow', async () => {
       // Step 1: Analyze codebase
@@ -455,13 +624,21 @@ describe('App', () => {
         recommendations: ['Add more tests']
       };
 
+      const mockContextFiles = {
+        projectMd: `# Test Project\n\n## Stack\n- **Frontend**: React\n- **Backend**: Express\n- **Testing**: Vitest`,
+        patternsMd: `# AI-Discovered Code Patterns\n\n*No patterns detected*`,
+        architectureMd: `# System Architecture\n\n## Overview\nMonolith architecture with Express backend and React frontend.`
+      };
+
       const updateResult = await handleUpdateContextFilesAI({
         analysis: mockAnalysis,
+        contextFiles: mockContextFiles,
         project_root: testProjectRoot
       });
 
       expect(updateResult.success).toBe(true);
-      expect(updateResult.updatedFiles).toHaveLength(2);
+      expect(updateResult.updatedFiles).toHaveLength(3);
+      expect(updateResult.content_generation).toBe('complete_ai_generated');
 
       // Verify files exist and contain expected content
       const projectFile = await fs.readFile(
@@ -470,6 +647,13 @@ describe('App', () => {
       );
       expect(projectFile).toContain('Express');
       expect(projectFile).toContain('React');
+
+      // Verify architecture.md was created
+      const architectureFile = await fs.readFile(
+        path.join(testProjectRoot, '.speclinter', 'context', 'architecture.md'),
+        'utf-8'
+      );
+      expect(architectureFile).toContain('System Architecture');
     });
   });
 });

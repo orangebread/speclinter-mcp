@@ -1,5 +1,5 @@
 // Main entry point for the SpecLinter package
-export { SpecParser } from './core/parser.js';
+// Legacy exports removed - SpecLinter now uses AI-leveraged tools exclusively
 export { TaskGenerator } from './core/generator.js';
 export { Storage } from './core/storage.js';
 export { StorageManager } from './core/storage-manager.js';
@@ -12,3 +12,16 @@ export {
   handleUpdateTaskStatus,
   handleInitProject
 } from './tools.js';
+
+// AI-leveraged tools (use via MCP server)
+export {
+  handleAnalyzeCodebase,
+  handleProcessCodebaseAnalysis,
+  handleParseSpecAI,
+  handleProcessSpecAnalysisAI,
+  handleFindSimilarAI,
+  handleProcessSimilarityAnalysisAI
+} from './ai-tools.js';
+
+// AI schemas and types
+export * from './types/ai-schemas.js';

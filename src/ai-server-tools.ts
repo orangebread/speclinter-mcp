@@ -1,8 +1,8 @@
 import { z } from 'zod';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import {
-  handleAnalyzeCodebaseAI,
-  handleUpdateContextFilesAI,
+  handleAnalyzeCodebase,
+  handleProcessCodebaseAnalysis,
   handleParseSpecAI,
   handleProcessSpecAnalysisAI,
   handleFindSimilarAI,
@@ -41,12 +41,12 @@ async function handleToolExecution(toolHandler: (args: any) => Promise<any>, arg
  * These tools follow the two-step pattern: collect data + return AI prompts, then process AI results
  */
 export function registerAITools(server: McpServer) {
-  // AI-leveraged codebase analysis (Step 1)
+  // Comprehensive codebase analysis
   server.registerTool(
     'speclinter_analyze_codebase_prepare',
     {
-      title: 'Prepare Codebase for AI Analysis',
-      description: 'Collect codebase files and return AI analysis prompt for comprehensive pattern detection',
+      title: 'Analyze Codebase',
+      description: 'Comprehensive codebase analysis that generates rich project documentation and context files',
       inputSchema: {
         project_root: z.string().optional().describe('Root directory of the project (defaults to auto-detected project root)'),
         analysis_depth: z.enum(['quick', 'standard', 'deep']).optional().default('standard').describe('Depth of analysis to perform'),
@@ -54,21 +54,22 @@ export function registerAITools(server: McpServer) {
         max_file_size: z.number().optional().default(50000).describe('Maximum file size in bytes to include')
       }
     },
-    async (args) => handleToolExecution(handleAnalyzeCodebaseAI, args)
+    async (args) => handleToolExecution(handleAnalyzeCodebase, args)
   );
 
-  // Process AI codebase analysis results (Step 2)
+  // Process codebase analysis results
   server.registerTool(
     'speclinter_analyze_codebase_process',
     {
-      title: 'Process AI Codebase Analysis',
-      description: 'Process AI codebase analysis results and update SpecLinter context files',
+      title: 'Process Codebase Analysis',
+      description: 'Process comprehensive codebase analysis results and update SpecLinter context files',
       inputSchema: {
-        analysis: z.object({}).passthrough().describe('AI analysis results matching AICodebaseAnalysisSchema'),
+        analysis: z.object({}).passthrough().describe('AI analysis results matching AICodebaseAnalysisWithContextSchema'),
+        contextFiles: z.object({}).passthrough().optional().describe('AI-generated context files'),
         project_root: z.string().optional().describe('Root directory of the project (defaults to auto-detected project root)')
       }
     },
-    async (args) => handleToolExecution(handleUpdateContextFilesAI, args)
+    async (args) => handleToolExecution(handleProcessCodebaseAnalysis, args)
   );
 
   // AI-leveraged spec parsing (Step 1)

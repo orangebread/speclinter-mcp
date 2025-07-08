@@ -98,7 +98,7 @@ class SpecLinterServer {
       'speclinter_init_project',
       {
         title: 'Initialize SpecLinter Project',
-        description: 'Initialize SpecLinter in a project directory with default configuration and templates',
+        description: 'Initialize SpecLinter in a project directory with default configuration and directory structure',
         inputSchema: {
           project_root: z.string().optional().describe('Root directory for the project (defaults to current working directory)'),
           force_reinit: z.boolean().optional().default(false).describe('Force reinitialization if already initialized')

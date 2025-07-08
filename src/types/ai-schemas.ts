@@ -124,44 +124,72 @@ export const AISimilarityAnalysisSchema = z.object({
   confidence: z.number().min(0).max(1).describe('Confidence in similarity analysis')
 });
 
-// AI prompt templates with detailed instructions
+// Enhanced context file generation schema with rich project-specific content
+export const AIContextFilesSchema = z.object({
+  projectMd: z.string().describe('Complete project.md content - comprehensive project context including domain, purpose, tech stack with rationale, architectural decisions, development workflow, and integration patterns'),
+  patternsMd: z.string().describe('Complete patterns.md content - discovered patterns with examples, confidence levels, and implementation guidance'),
+  architectureMd: z.string().describe('Complete architecture.md content - detailed system design, MCP architecture, AI-leveraged patterns, data flow, and implementation decisions with rationale')
+});
+
+
+
+// Combined schema for single AI call efficiency
+export const AICodebaseAnalysisWithContextSchema = z.object({
+  analysis: AICodebaseAnalysisSchema,
+  contextFiles: AIContextFilesSchema
+});
+
+// AI prompt templates for comprehensive documentation generation
 export const AIPromptTemplates = {
-  codebaseAnalysis: `Analyze the provided codebase files and extract comprehensive information about:
+  codebaseAnalysis: `Analyze the provided codebase files and generate comprehensive project documentation.
 
-1. **Tech Stack**: Identify frameworks, libraries, databases, testing tools, build tools, and package managers
-   - Look for package.json, requirements.txt, Cargo.toml, go.mod, etc.
-   - Identify frontend frameworks (React, Vue, Angular, etc.)
-   - Detect backend frameworks (Express, FastAPI, Spring, etc.)
-   - Find testing frameworks (Jest, Vitest, pytest, etc.)
+🎯 **PROJECT CONTEXT ANALYSIS:**
+Extract deep understanding of:
+- Project purpose and core domain (what problem does it solve?)
+- Target users and use cases (who uses this and how?)
+- Value proposition (what makes this unique/valuable?)
+- Key domain concepts and terminology
 
-2. **Code Patterns**: Find error handling, API, and testing patterns with specific examples
-   - Error handling: try-catch blocks, Result types, error middleware
-   - API patterns: REST endpoints, GraphQL resolvers, middleware usage
-   - Testing patterns: test structure, mocking, assertion styles
+🏗️ **ARCHITECTURAL DECISION ANALYSIS:**
+For each major technical choice, identify:
+- The decision made (e.g., "Use MCP server architecture")
+- Context that led to the decision (e.g., "Need to integrate with AI IDEs")
+- Rationale and benefits (e.g., "MCP provides standardized AI tool protocol")
+- Trade-offs and limitations (e.g., "Limited to stdio transport")
+- Alternatives that were considered (e.g., "REST API, GraphQL, gRPC")
 
-3. **Naming Conventions**: Analyze how files, variables, functions, and classes are named
-   - File naming: kebab-case, camelCase, PascalCase, snake_case
-   - Variable/function naming patterns
-   - Class and interface naming conventions
+🔄 **DEVELOPMENT WORKFLOW ANALYSIS:**
+Understand how work flows through the system:
+- How are specifications processed into tasks?
+- What is the testing and validation approach?
+- How are features deployed and used?
+- What are the key development patterns?
 
-4. **Project Structure**: Understand the organization and architecture
-   - Source directory structure
-   - Separation of concerns (MVC, layered, etc.)
-   - Configuration and build file organization
+🔗 **INTEGRATION PATTERN ANALYSIS:**
+Identify how the system connects with external systems:
+- AI IDE integration patterns
+- External API usage
+- Database and storage patterns
+- Protocol and communication patterns
 
-5. **Code Quality**: Assess maintainability, documentation, and identify issues
-   - Rate overall quality (0-100)
-   - Identify specific issues with severity levels
-   - Assess documentation coverage and quality
+📊 **PERFORMANCE & SCALABILITY ANALYSIS:**
+Consider system design for scale:
+- What are the scalability factors?
+- What performance optimizations exist?
+- What are the current limitations?
+- How does the architecture support growth?`,
 
-6. **Insights & Recommendations**: Provide actionable insights
-   - Key strengths of the codebase
-   - Areas for improvement with specific suggestions
-   - Best practices being followed or missing
 
-Return a JSON response matching the AICodebaseAnalysisSchema. Be thorough but focus on the most significant patterns and insights.`,
+
+
 
   specAnalysis: `Analyze the provided specification and extract:
+
+🔍 **CRITICAL ANALYSIS REQUIREMENTS:**
+- MUST align all tasks with the provided project tech stack and patterns
+- MUST reference specific project patterns and conventions in implementation guidance
+- MUST ensure tasks are implementable within the existing architecture
+- MUST validate technical approaches against project capabilities
 
 1. **Quality Assessment**: Score the spec and identify issues, strengths, and improvements
    - Rate overall quality (0-100) and assign letter grade (A+ to F)
@@ -172,7 +200,8 @@ Return a JSON response matching the AICodebaseAnalysisSchema. Be thorough but fo
 2. **Task Breakdown**: Extract clear, actionable tasks with implementation guidance
    - Create 5-10 specific, implementable tasks
    - Each task should be completable in 1-4 hours by a developer
-   - Include detailed implementation guidance and technical approach
+   - REQUIRED: Include detailed implementation guidance using project's tech stack
+   - REQUIRED: Reference relevant code patterns from project context
    - Provide clear acceptance criteria for each task
    - Estimate effort level (XS, S, M, L, XL)
 
@@ -180,7 +209,7 @@ Return a JSON response matching the AICodebaseAnalysisSchema. Be thorough but fo
    - Performance requirements and scalability needs
    - Security considerations and compliance requirements
    - Integration points with existing systems
-   - Technology stack recommendations
+   - REQUIRED: Technology stack recommendations aligned with project stack
 
 4. **Business Context**: Understand user stories and business value
    - Extract or infer user stories from the specification
@@ -192,7 +221,12 @@ Return a JSON response matching the AICodebaseAnalysisSchema. Be thorough but fo
    - Identify what is explicitly excluded
    - List assumptions being made about the implementation
 
-Return a JSON response matching the AISpecAnalysisSchema. Focus on creating implementable tasks with clear acceptance criteria.`,
+🎯 **PROJECT ALIGNMENT REQUIREMENTS:**
+- All implementation guidance MUST use the project's detected tech stack
+- All patterns MUST reference existing project patterns where applicable
+- All tasks MUST be implementable within the current architecture
+
+Return a JSON response matching the AISpecAnalysisSchema. Focus on creating implementable tasks that align with the project's tech stack and patterns.`,
 
   similarityAnalysis: `Analyze the provided specification against existing features to determine semantic similarity:
 
@@ -217,7 +251,31 @@ Return a JSON response matching the AISpecAnalysisSchema. Focus on creating impl
    - "separate": Features serve different purposes, keep distinct
    - "refactor": Significant overlap suggests architectural improvements
 
-Return a JSON response matching the AISimilarityAnalysisSchema. Focus on semantic understanding over surface-level text matching.`
+Return a JSON response matching the AISimilarityAnalysisSchema. Focus on semantic understanding over surface-level text matching.`,
+
+  contextFileGeneration: `Based on your comprehensive codebase analysis, generate complete, professional context files:
+
+🎯 **REQUIREMENTS:**
+- Generate complete files from scratch (no templates or placeholders)
+- Project-specific content only
+- Professional documentation quality
+- Consistent markdown formatting
+- Evidence-based claims with file references
+
+📁 **FILES TO GENERATE:**
+
+1. **project.md**: Project overview with tech stack, constraints, standards, key decisions
+2. **patterns.md**: Code patterns discovered in the codebase with examples and confidence scores
+3. **architecture.md**: System architecture, design decisions, and trade-offs
+
+🔍 **CONTENT GUIDELINES:**
+- Use actual project data from analysis
+- Include confidence scores for AI-detected items
+- Reference specific files where patterns were found
+- No generic placeholders like [Framework/Library/etc]
+- Professional tone suitable for development teams
+
+Return JSON matching AIContextFilesSchema with complete file contents.`
 };
 
 // Type exports
@@ -230,3 +288,5 @@ export type AISpecQuality = z.infer<typeof AISpecQualitySchema>;
 export type AITask = z.infer<typeof AITaskSchema>;
 export type AISpecAnalysis = z.infer<typeof AISpecAnalysisSchema>;
 export type AISimilarityAnalysis = z.infer<typeof AISimilarityAnalysisSchema>;
+export type AIContextFiles = z.infer<typeof AIContextFilesSchema>;
+export type AICodebaseAnalysisWithContext = z.infer<typeof AICodebaseAnalysisWithContextSchema>;

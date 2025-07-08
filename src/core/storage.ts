@@ -1,7 +1,7 @@
 import { promises as fs } from 'fs';
 import path from 'path';
 import Database from 'better-sqlite3';
-import Handlebars from 'handlebars';
+import Handlebars from 'handlebars'; // Still needed for task file generation
 import { Config, ConfigSchema } from '../types/config.js';
 import {
   Task,
@@ -121,94 +121,13 @@ export class Storage {
   async loadProjectContext(): Promise<ProjectContext | null> {
     if (!this.config) throw new Error('Storage not initialized');
 
-    const contextDir = path.join(this.speclinterDir, 'context');
-
-    try {
-      const files = ['project.md', 'patterns.md', 'architecture.md'];
-      const context: any = {};
-
-      for (const file of files) {
-        try {
-          const content = await fs.readFile(path.join(contextDir, file), 'utf-8');
-          const key = file.replace('.md', '');
-
-          if (key === 'project') {
-            context.stack = this.parseSection(content, 'Stack');
-            context.constraints = this.parseListSection(content, 'Constraints');
-            context.standards = this.parseListSection(content, 'Standards');
-          } else if (key === 'patterns') {
-            context.patterns = this.parsePatterns(content);
-          }
-        } catch {
-          // File doesn't exist, skip
-        }
-      }
-
-      return Object.keys(context).length > 0 ? context : null;
-    } catch {
-      return null;
-    }
+    // AI-generated context files are self-contained and don't need parsing
+    // Return null to indicate no legacy template-based context available
+    // AI tools will read the files directly when needed
+    return null;
   }
 
-  private parseSection(content: string, section: string): Record<string, string> {
-    const lines = content.split('\n');
-    const sectionIndex = lines.findIndex(line =>
-      line.toLowerCase().includes(section.toLowerCase())
-    );
-
-    if (sectionIndex === -1) return {};
-
-    const result: Record<string, string> = {};
-    for (let i = sectionIndex + 1; i < lines.length; i++) {
-      const line = lines[i].trim();
-      if (line.startsWith('##')) break;
-      if (line.startsWith('- **')) {
-        const match = line.match(/- \*\*(.+?)\*\*: (.+)/);
-        if (match) {
-          result[match[1]] = match[2];
-        }
-      }
-    }
-
-    return result;
-  }
-
-  private parseListSection(content: string, section: string): string[] {
-    const lines = content.split('\n');
-    const sectionIndex = lines.findIndex(line =>
-      line.toLowerCase().includes(section.toLowerCase())
-    );
-
-    if (sectionIndex === -1) return [];
-
-    const result: string[] = [];
-    for (let i = sectionIndex + 1; i < lines.length; i++) {
-      const line = lines[i].trim();
-      if (line.startsWith('##')) break;
-      if (line.startsWith('-')) {
-        result.push(line.substring(1).trim());
-      }
-    }
-
-    return result;
-  }
-
-  private parsePatterns(content: string): Array<{name: string, description: string, anchor: string}> {
-    const patterns: Array<{name: string, description: string, anchor: string}> = [];
-    const lines = content.split('\n');
-
-    for (let i = 0; i < lines.length; i++) {
-      const line = lines[i].trim();
-      if (line.startsWith('## ')) {
-        const name = line.substring(3);
-        const anchor = name.toLowerCase().replace(/\s+/g, '-');
-        const description = lines[i + 1]?.trim() || '';
-        patterns.push({ name, description, anchor });
-      }
-    }
-
-    return patterns;
-  }
+  // Legacy template parsing methods removed - AI generates self-contained context files
 
   async saveFeature(
     featureName: string,

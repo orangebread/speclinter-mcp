@@ -136,10 +136,10 @@ Initialize SpecLinter in your project with default configuration and templates.
 
 > **🎯 Auto-Magic**: Automatically detects your project root directory - no manual configuration needed!
 
-### 🤖 AI-Leveraged Codebase Analysis
+### 🤖 Comprehensive Codebase Analysis
 
 #### 🔍 `speclinter_analyze_codebase_prepare`
-**Step 1**: Collect codebase files and prepare AI analysis prompt for comprehensive pattern detection.
+Comprehensive codebase analysis that generates rich project documentation and context files.
 
 **Parameters:**
 - `project_root` (string, optional) - Root directory of the project (defaults to auto-detected project root)
@@ -148,21 +148,22 @@ Initialize SpecLinter in your project with default configuration and templates.
 - `max_file_size` (number, optional, default: 50000) - Maximum file size in bytes to include
 
 **Returns:**
-- 🎯 Structured AI analysis prompt
-- 📁 List of collected files for analysis
-- 🔧 Follow-up tool instructions
+- 🎯 Comprehensive AI analysis prompt with project context
+- 📁 Collected files with package.json and README context
+- 🔧 Follow-up tool for processing results
 
 #### 🔄 `speclinter_analyze_codebase_process`
-**Step 2**: Process AI codebase analysis results and update SpecLinter context files.
+Process comprehensive codebase analysis results and update SpecLinter context files.
 
 **Parameters:**
-- `analysis` (object, required) - AI analysis results matching AICodebaseAnalysisSchema
+- `analysis` (object, required) - AI analysis results matching AICodebaseAnalysisWithContextSchema
+- `contextFiles` (object, optional) - AI-generated context files
 - `project_root` (string, optional) - Root directory of the project
 
 **Returns:**
-- ✅ Updated context files with AI insights
-- 📊 Detected tech stack and patterns
-- 💡 Code quality assessment and recommendations
+- ✅ Rich, project-specific context files (project.md, architecture.md, patterns.md)
+- 📊 Comprehensive tech stack and architectural analysis
+- 💡 AI-optimized documentation for effective development assistance
 
 ### 🤖 AI-Leveraged Specification Parsing
 
