@@ -29,7 +29,7 @@ export class Storage {
   constructor(rootDir?: string) {
     this.rootDir = rootDir || process.cwd();
     this.speclinterDir = path.join(this.rootDir, '.speclinter');
-    this.tasksDir = path.join(this.rootDir, 'tasks');
+    this.tasksDir = ''; // Will be set after config is loaded
   }
 
   async initialize(): Promise<void> {
@@ -47,6 +47,9 @@ export class Storage {
     const configContent = await fs.readFile(configPath, 'utf-8');
     const configData = JSON.parse(configContent);
     this.config = ConfigSchema.parse(configData);
+
+    // Set tasks directory from config
+    this.tasksDir = path.join(this.rootDir, this.config.storage.tasksDir);
 
     // Initialize database
     const dbPath = path.join(this.rootDir, this.config.storage.dbPath);
@@ -113,6 +116,19 @@ export class Storage {
         coverage REAL NOT NULL,
         details TEXT NOT NULL,
         run_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (feature_name) REFERENCES features(name)
+      )
+    `);
+
+    this.db.exec(`
+      CREATE TABLE IF NOT EXISTS validation_results (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        feature_name TEXT NOT NULL,
+        overall_status TEXT NOT NULL,
+        completion_percentage REAL NOT NULL,
+        quality_score REAL NOT NULL,
+        validation_data TEXT NOT NULL,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY (feature_name) REFERENCES features(name)
       )
     `);
@@ -477,7 +493,7 @@ export class Storage {
     return result.count;
   }
 
-  private async getFeatureTasks(featureName: string): Promise<Task[]> {
+  async getFeatureTasks(featureName: string): Promise<Task[]> {
     if (!this.db) throw new Error('Database not initialized');
 
     const tasks = this.db.prepare(`
@@ -712,5 +728,56 @@ export class Storage {
     createdFiles.push(path.join(featureDir, '_active.md'));
 
     return createdFiles;
+  }
+
+  async updateValidationResults(featureName: string, validationResults: any): Promise<void> {
+    if (!this.db) throw new Error('Database not initialized');
+
+    this.db.prepare(`
+      INSERT OR REPLACE INTO validation_results (
+        feature_name,
+        overall_status,
+        completion_percentage,
+        quality_score,
+        validation_data,
+        created_at
+      ) VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+    `).run(
+      featureName,
+      validationResults.overallStatus,
+      validationResults.completionPercentage,
+      validationResults.qualityScore,
+      JSON.stringify(validationResults)
+    );
+  }
+
+  async getValidationResults(featureName: string): Promise<any | null> {
+    if (!this.db) throw new Error('Database not initialized');
+
+    const result = this.db.prepare(`
+      SELECT * FROM validation_results
+      WHERE feature_name = ?
+      ORDER BY created_at DESC
+      LIMIT 1
+    `).get(featureName) as any;
+
+    if (!result) return null;
+
+    return {
+      ...JSON.parse(result.validation_data),
+      created_at: result.created_at
+    };
+  }
+
+  async getTask(featureName: string, taskId: string): Promise<Task | null> {
+    if (!this.db) throw new Error('Database not initialized');
+
+    const task = this.db.prepare(`
+      SELECT * FROM tasks WHERE feature_name = ? AND id = ?
+    `).get(featureName, taskId) as any;
+
+    if (!task) return null;
+
+    return this.dbTaskToTask(task);
   }
 }

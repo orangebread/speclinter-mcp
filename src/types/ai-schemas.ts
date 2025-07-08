@@ -139,6 +139,90 @@ export const AICodebaseAnalysisWithContextSchema = z.object({
   contextFiles: AIContextFilesSchema
 });
 
+// AI Implementation Validation Schemas
+export const AIImplementationFileSchema = z.object({
+  path: z.string().describe('File path relative to project root'),
+  type: z.enum(['source', 'test', 'config', 'documentation']).describe('Type of file'),
+  relevance: z.number().min(0).max(1).describe('How relevant this file is to the feature (0-1)'),
+  content: z.string().describe('File content or relevant excerpts'),
+  patterns: z.array(z.string()).describe('Code patterns found in this file'),
+  functions: z.array(z.string()).describe('Key functions/methods found'),
+  exports: z.array(z.string()).describe('Exported symbols/components')
+});
+
+export const AITaskValidationSchema = z.object({
+  taskId: z.string().describe('Task ID being validated'),
+  title: z.string().describe('Task title'),
+  implementationStatus: z.enum(['not_implemented', 'partially_implemented', 'fully_implemented', 'over_implemented']).describe('Implementation status'),
+  qualityScore: z.number().min(0).max(100).describe('Implementation quality score (0-100)'),
+  implementationFiles: z.array(z.string()).describe('Files that implement this task'),
+  acceptanceCriteriaValidation: z.array(z.object({
+    criteria: z.string().describe('Acceptance criteria text'),
+    status: z.enum(['met', 'partially_met', 'not_met', 'unclear']).describe('Whether criteria is met'),
+    evidence: z.string().describe('Code evidence or explanation'),
+    confidence: z.number().min(0).max(1).describe('Confidence in this assessment')
+  })).describe('Validation of each acceptance criteria'),
+  patternCompliance: z.array(z.object({
+    pattern: z.string().describe('Code pattern name'),
+    compliance: z.enum(['follows', 'partially_follows', 'violates', 'not_applicable']).describe('Pattern compliance'),
+    examples: z.array(z.string()).describe('Code examples showing compliance/violation')
+  })).describe('How well implementation follows project patterns'),
+  codeQualityIssues: z.array(z.object({
+    type: z.enum(['error_handling', 'validation', 'security', 'performance', 'maintainability']).describe('Type of issue'),
+    severity: z.enum(['low', 'medium', 'high', 'critical']).describe('Issue severity'),
+    description: z.string().describe('Description of the issue'),
+    location: z.string().describe('File and line where issue occurs'),
+    suggestion: z.string().describe('How to fix this issue')
+  })).describe('Code quality issues found'),
+  missingComponents: z.array(z.string()).describe('Components that should exist but are missing'),
+  recommendations: z.array(z.string()).describe('Specific recommendations for improvement')
+});
+
+export const AIFeatureValidationSchema = z.object({
+  featureName: z.string().describe('Name of the feature being validated'),
+  overallStatus: z.enum(['not_started', 'in_progress', 'mostly_complete', 'complete', 'over_engineered']).describe('Overall feature implementation status'),
+  completionPercentage: z.number().min(0).max(100).describe('Estimated completion percentage'),
+  qualityScore: z.number().min(0).max(100).describe('Overall implementation quality score'),
+  taskValidations: z.array(AITaskValidationSchema).describe('Validation results for each task'),
+  architecturalAlignment: z.object({
+    score: z.number().min(0).max(100).describe('How well feature aligns with project architecture'),
+    strengths: z.array(z.string()).describe('Architectural strengths'),
+    concerns: z.array(z.string()).describe('Architectural concerns'),
+    recommendations: z.array(z.string()).describe('Architectural recommendations')
+  }).describe('Assessment of architectural alignment'),
+  testCoverage: z.object({
+    hasTests: z.boolean().describe('Whether tests exist for this feature'),
+    testTypes: z.array(z.enum(['unit', 'integration', 'e2e', 'manual'])).describe('Types of tests found'),
+    coverage: z.number().min(0).max(100).optional().describe('Estimated test coverage percentage'),
+    testQuality: z.enum(['poor', 'fair', 'good', 'excellent']).describe('Quality of existing tests'),
+    missingTests: z.array(z.string()).describe('Types of tests that should be added')
+  }).describe('Test coverage assessment'),
+  securityConsiderations: z.array(z.object({
+    area: z.string().describe('Security area (auth, validation, etc.)'),
+    status: z.enum(['secure', 'needs_attention', 'vulnerable']).describe('Security status'),
+    details: z.string().describe('Security assessment details'),
+    recommendations: z.array(z.string()).describe('Security recommendations')
+  })).describe('Security assessment'),
+  performanceConsiderations: z.array(z.object({
+    area: z.string().describe('Performance area (database, API, etc.)'),
+    assessment: z.string().describe('Performance assessment'),
+    concerns: z.array(z.string()).describe('Performance concerns'),
+    optimizations: z.array(z.string()).describe('Suggested optimizations')
+  })).describe('Performance assessment'),
+  nextSteps: z.array(z.object({
+    priority: z.enum(['low', 'medium', 'high', 'critical']).describe('Priority level'),
+    action: z.string().describe('Recommended action'),
+    effort: z.enum(['XS', 'S', 'M', 'L', 'XL']).describe('Estimated effort'),
+    rationale: z.string().describe('Why this action is recommended')
+  })).describe('Prioritized next steps for feature completion'),
+  aiInsights: z.object({
+    strengths: z.array(z.string()).describe('What the implementation does well'),
+    weaknesses: z.array(z.string()).describe('Areas that need improvement'),
+    surprises: z.array(z.string()).describe('Unexpected findings in the implementation'),
+    confidence: z.number().min(0).max(1).describe('Overall confidence in this validation')
+  }).describe('AI insights and observations')
+});
+
 // AI prompt templates for comprehensive documentation generation
 export const AIPromptTemplates = {
   codebaseAnalysis: `Analyze the provided codebase files and generate comprehensive project documentation.

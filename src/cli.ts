@@ -19,10 +19,10 @@ program
   });
 
 program
-  .command('test <feature>')
-  .description('Run tests for a specific feature')
+  .command('validate <feature>')
+  .description('Validate implementation of a specific feature using AI analysis')
   .action(async (feature) => {
-    await runFeatureTests(feature);
+    await validateFeatureImplementation(feature);
   });
 
 program
@@ -32,36 +32,52 @@ program
     await showFeatureStatus(feature);
   });
 
-async function runFeatureTests(feature: string): Promise<void> {
-  const spinner = ora(`Running tests for ${feature}...`).start();
+async function validateFeatureImplementation(feature: string): Promise<void> {
+  const spinner = ora(`Validating implementation for ${feature}...`).start();
 
   try {
-    const { TaskGenerator } = await import('./core/generator.js');
-    const generator = new TaskGenerator();
+    console.log(chalk.yellow('\n🤖 AI-powered validation requires an AI assistant.'));
+    console.log(chalk.gray('Please use the MCP tools through your AI IDE:'));
+    console.log(chalk.blue('  1. "Prepare validation for feature: ' + feature + '"'));
+    console.log(chalk.blue('  2. AI will analyze the implementation'));
+    console.log(chalk.blue('  3. "Process the validation results"'));
+    console.log(chalk.gray('\nOr use the direct MCP tools:'));
+    console.log(chalk.blue('  • speclinter_validate_implementation_prepare'));
+    console.log(chalk.blue('  • speclinter_validate_implementation_process'));
 
-    const results = await generator.runFeatureTests(feature);
+    spinner.info('Validation requires AI analysis');
 
-    spinner.succeed('Tests completed');
+    // For now, show basic status information
+    const { StorageManager } = await import('./core/storage-manager.js');
+    const storage = await StorageManager.createInitializedStorage();
+    const status = await storage.getFeatureStatus(feature);
 
-    console.log(chalk.green(`\n📊 Test Results for ${feature}:`));
-    console.log(chalk.green(`  ✅ Passed: ${results.passed}`));
-    console.log(chalk.red(`  ❌ Failed: ${results.failed}`));
-    console.log(chalk.yellow(`  ⏭️  Skipped: ${results.skipped}`));
-    console.log(chalk.blue(`  📈 Coverage: ${results.coverage}%`));
+    console.log(chalk.green(`\n📊 Current Status for ${feature}:`));
+    console.log(chalk.blue(`  📝 Total Tasks: ${status.totalTasks}`));
+    console.log(chalk.green(`  ✅ Completed: ${status.completedTasks}`));
+    console.log(chalk.yellow(`  🔄 In Progress: ${status.inProgressTasks}`));
+    console.log(chalk.red(`  🚫 Blocked: ${status.blockedTasks}`));
+    console.log(chalk.gray(`  📅 Last Updated: ${status.lastUpdated}`));
 
-    if (results.details.length > 0) {
-      console.log(chalk.gray('\n📋 Details:'));
-      for (const detail of results.details) {
-        const statusIcon = detail.status === 'passed' ? '✅' : '❌';
-        console.log(chalk.gray(`  ${statusIcon} ${detail.scenario}`));
-        if (detail.error) {
-          console.log(chalk.red(`    Error: ${detail.error}`));
-        }
-      }
+    const progress = status.totalTasks > 0
+      ? Math.round((status.completedTasks / status.totalTasks) * 100)
+      : 0;
+    console.log(chalk.blue(`  📈 Progress: ${progress}%`));
+
+    // Check if validation results exist
+    const validationResults = await storage.getValidationResults(feature);
+    if (validationResults) {
+      console.log(chalk.green(`\n🔍 Last AI Validation:`));
+      console.log(chalk.blue(`  Status: ${validationResults.overallStatus}`));
+      console.log(chalk.blue(`  Quality Score: ${validationResults.qualityScore}/100`));
+      console.log(chalk.blue(`  Completion: ${validationResults.completionPercentage}%`));
+      console.log(chalk.gray(`  Validated: ${new Date(validationResults.created_at).toLocaleString()}`));
+    } else {
+      console.log(chalk.yellow('\n💡 No AI validation results found. Use the MCP tools for comprehensive analysis.'));
     }
 
   } catch (error) {
-    spinner.fail('Test execution failed');
+    spinner.fail('Validation check failed');
     console.error(chalk.red(error instanceof Error ? error.message : 'Unknown error'));
   }
 }

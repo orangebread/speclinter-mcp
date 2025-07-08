@@ -51,7 +51,7 @@ export class StorageManager {
         '.speclinter',
         '.speclinter/context',
         '.speclinter/cache',
-        'tasks'
+        'speclinter-tasks'
       ];
 
       for (const dir of directories) {

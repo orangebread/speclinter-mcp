@@ -8,7 +8,6 @@ export * from './types/index.js';
 export * from './types/config.js';
 export {
   handleGetTaskStatus,
-  handleRunTests,
   handleUpdateTaskStatus,
   handleInitProject
 } from './tools.js';
@@ -20,7 +19,9 @@ export {
   handleParseSpecAI,
   handleProcessSpecAnalysisAI,
   handleFindSimilarAI,
-  handleProcessSimilarityAnalysisAI
+  handleProcessSimilarityAnalysisAI,
+  handleValidateImplementationPrepare,
+  handleValidateImplementationProcess
 } from './ai-tools.js';
 
 // AI schemas and types

@@ -12,6 +12,7 @@ import {
   AIContextFilesSchema,
   AICodebaseAnalysisSchema
 } from '../src/types/ai-schemas.js';
+import { StorageManager } from '../src/core/storage-manager.js';
 
 describe('AI-Leveraged Tools', () => {
   const testProjectRoot = path.join(process.cwd(), 'test-temp');
@@ -97,7 +98,7 @@ describe('App', () => {
           gherkinStyle: "declarative"
         },
         storage: {
-          tasksDir: "./tasks",
+          tasksDir: "./speclinter-tasks",
           dbPath: "./.speclinter/speclinter.db",
           useGit: true
         },
@@ -654,6 +655,162 @@ This project follows a **monolith** architecture with by-type organization patte
         'utf-8'
       );
       expect(architectureFile).toContain('System Architecture');
+    });
+  });
+
+  describe('AI Implementation Validation', () => {
+    beforeEach(async () => {
+      // Create a test feature with tasks
+      const storage = await StorageManager.createInitializedStorage(testProjectRoot);
+      await storage.saveFeature(
+        'test-validation-feature',
+        [{
+          id: 'task_01',
+          title: 'Create user authentication endpoint',
+          slug: 'create-user-auth-endpoint',
+          summary: 'Implement POST /api/auth/login endpoint with validation',
+          implementation: 'Create Express route with bcrypt password validation',
+          status: 'completed',
+          statusEmoji: '✅',
+          featureName: 'test-validation-feature',
+          acceptanceCriteria: [
+            'Endpoint accepts email and password',
+            'Returns JWT token on successful login',
+            'Returns 401 for invalid credentials',
+            'Validates input format'
+          ],
+          testFile: 'auth-login.feature',
+          coverageTarget: '90%',
+          notes: 'Use bcrypt for password hashing',
+          relevantPatterns: []
+        }],
+        {
+          spec: 'Create user authentication system with login endpoint',
+          grade: 'A',
+          score: 90,
+          tasks: [],
+          improvements: [],
+          missingElements: []
+        }
+      );
+
+      // Create mock implementation file
+      await fs.writeFile(
+        path.join(testProjectRoot, 'src', 'auth.ts'),
+        `
+import express from 'express';
+import bcrypt from 'bcrypt';
+import jwt from 'jsonwebtoken';
+
+const router = express.Router();
+
+router.post('/api/auth/login', async (req, res) => {
+  try {
+    const { email, password } = req.body;
+
+    // Input validation
+    if (!email || !password) {
+      return res.status(400).json({ error: 'Email and password required' });
+    }
+
+    // Find user (mock implementation)
+    const user = await findUserByEmail(email);
+    if (!user) {
+      return res.status(401).json({ error: 'Invalid credentials' });
+    }
+
+    // Verify password
+    const isValid = await bcrypt.compare(password, user.passwordHash);
+    if (!isValid) {
+      return res.status(401).json({ error: 'Invalid credentials' });
+    }
+
+    // Generate JWT token
+    const token = jwt.sign({ userId: user.id }, process.env.JWT_SECRET);
+
+    res.json({ success: true, token });
+  } catch (error) {
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+async function findUserByEmail(email: string) {
+  // Mock user lookup
+  return { id: 1, email, passwordHash: 'hashed_password' };
+}
+
+export default router;
+        `
+      );
+    });
+
+    it('should prepare validation analysis with feature context', async () => {
+      const { handleValidateImplementationPrepare } = await import('../src/ai-tools.js');
+
+      const result = await handleValidateImplementationPrepare({
+        feature_name: 'test-validation-feature',
+        project_root: testProjectRoot
+      });
+
+      expect(result.success).toBe(true);
+      expect(result.action).toBe('ai_analysis_required');
+      expect(result.feature_name).toBe('test-validation-feature');
+      expect(result.validation_prompt).toContain('Create user authentication endpoint');
+      expect(result.validation_prompt).toContain('POST /api/auth/login');
+      expect(result.validation_prompt).toContain('auth.ts');
+      expect(result.follow_up_tool).toBe('validate_implementation_process');
+      expect(result.schema).toBe('AIFeatureValidationSchema');
+      expect(result.feature_context?.tasks).toBe(1);
+      expect(result.feature_context?.files_found).toBeGreaterThan(0);
+    });
+
+    it('should handle validation for non-existent feature', async () => {
+      const { handleValidateImplementationPrepare } = await import('../src/ai-tools.js');
+
+      const result = await handleValidateImplementationPrepare({
+        feature_name: 'non-existent-feature',
+        project_root: testProjectRoot
+      });
+
+      expect(result.success).toBe(false);
+      expect(result.error).toContain('Feature \'non-existent-feature\' not found');
+    });
+
+    it('should validate AI schema compliance', async () => {
+      const { AIFeatureValidationSchema } = await import('../src/types/ai-schemas.js');
+
+      const validValidation = {
+        featureName: 'test-feature',
+        overallStatus: 'complete',
+        completionPercentage: 100,
+        qualityScore: 95,
+        taskValidations: [],
+        architecturalAlignment: {
+          score: 90,
+          strengths: [],
+          concerns: [],
+          recommendations: []
+        },
+        testCoverage: {
+          hasTests: true,
+          testTypes: ['unit'],
+          coverage: 85,
+          testQuality: 'good',
+          missingTests: []
+        },
+        securityConsiderations: [],
+        performanceConsiderations: [],
+        nextSteps: [],
+        aiInsights: {
+          strengths: [],
+          weaknesses: [],
+          surprises: [],
+          confidence: 0.9
+        }
+      };
+
+      const result = AIFeatureValidationSchema.safeParse(validValidation);
+      expect(result.success).toBe(true);
     });
   });
 });

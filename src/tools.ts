@@ -1,4 +1,4 @@
-import { TaskGenerator } from './core/generator.js';
+// TaskGenerator import removed - legacy test functionality replaced with AI validation
 import { Storage } from './core/storage.js';
 import { StorageManager } from './core/storage-manager.js';
 import { TaskStatusSchema } from './types/index.js';
@@ -62,28 +62,8 @@ export async function handleGetTaskStatus(args: any) {
   return status;
 }
 
-export async function handleRunTests(args: any) {
-  const { feature_name, task_id, project_root } = args;
-
-  const rootDir = await resolveProjectRoot(project_root);
-  const storage = await StorageManager.createInitializedStorage(rootDir);
-  const generator = new TaskGenerator();
-
-  // Run tests
-  const results = await generator.runFeatureTests(feature_name, task_id, rootDir);
-
-  // Update status based on results
-  await storage.updateTestResults(feature_name, results);
-
-  return {
-    feature: feature_name,
-    passed: results.passed,
-    failed: results.failed,
-    skipped: results.skipped,
-    coverage: results.coverage,
-    details: results.details
-  };
-}
+// handleRunTests function removed - replaced with AI-leveraged validation
+// Use speclinter_validate_implementation_prepare and speclinter_validate_implementation_process instead
 
 
 
@@ -142,7 +122,7 @@ export async function handleInitProject(args: any) {
       '.speclinter',
       '.speclinter/context',
       '.speclinter/cache',
-      'tasks'
+      'speclinter-tasks'
     ];
 
     for (const dir of directories) {

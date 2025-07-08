@@ -3,6 +3,7 @@ import { promises as fs } from 'fs';
 import path from 'path';
 import { exec } from 'child_process';
 import { promisify } from 'util';
+import { StorageManager } from './storage-manager.js';
 
 const execAsync = promisify(exec);
 
@@ -17,7 +18,13 @@ export class TaskGenerator {
 
   async runFeatureTests(featureName: string, taskId?: string, projectRoot?: string): Promise<TestResult> {
     const rootDir = projectRoot || process.cwd();
-    const featureDir = path.join(rootDir, 'tasks', featureName);
+
+    // Get the correct tasks directory from config
+    const storage = await StorageManager.createInitializedStorage(rootDir);
+    const config = await storage.getConfig();
+    const tasksDir = path.join(rootDir, config.storage.tasksDir);
+
+    const featureDir = path.join(tasksDir, featureName);
     const gherkinDir = path.join(featureDir, 'gherkin');
 
     try {

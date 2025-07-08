@@ -208,7 +208,7 @@ project-root/
 │   │   ├── patterns.md      # Code patterns
 │   │   └── architecture.md  # System design
 │   └── cache/               # Temporary data
-└── tasks/                   # Generated tasks
+└── speclinter-tasks/        # Generated tasks
     └── feature-name/
         ├── tasks.json       # Task definitions
         └── gherkin/         # Test scenarios

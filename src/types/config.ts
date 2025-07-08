@@ -64,7 +64,7 @@ export const DEFAULT_CONFIG: Config = {
     gherkinStyle: "declarative"
   },
   storage: {
-    tasksDir: "./tasks",
+    tasksDir: "./speclinter-tasks",
     dbPath: "./.speclinter/speclinter.db",
     useGit: true
   },

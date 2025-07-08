@@ -11,6 +11,6 @@ coverage/
 .vscode/
 .idea/
 
-# SpecLinter generated files
-.speclinter/speclinter.db
-.speclinter/cache/
+# SpecLinter generated files (uncomment to ignore)
+# .speclinter/*
+# speclinter-tasks/

@@ -3,7 +3,6 @@ import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js'
 import { z } from 'zod';
 import {
   handleGetTaskStatus,
-  handleRunTests,
   handleUpdateTaskStatus,
   handleInitProject
 } from './tools.js';
@@ -45,28 +44,8 @@ class SpecLinterServer {
       }
     );
 
-    // Run tests tool
-    this.server.registerTool(
-      'speclinter_run_tests',
-      {
-        title: 'Run Tests',
-        description: 'Run tests for a feature and update task status',
-        inputSchema: {
-          feature_name: z.string().describe('Name of the feature to test'),
-          task_id: z.string().optional().describe('Optional specific task to test'),
-          project_root: z.string().optional().describe('Root directory of the project (defaults to auto-detected project root)')
-        }
-      },
-      async (args) => {
-        const result = await handleRunTests(args);
-        return {
-          content: [{
-            type: 'text',
-            text: JSON.stringify(result, null, 2)
-          }]
-        };
-      }
-    );
+    // Legacy run_tests tool removed - replaced with AI-leveraged validation
+    // Use speclinter_validate_implementation_prepare and speclinter_validate_implementation_process instead
 
     // Update task status tool
     this.server.registerTool(

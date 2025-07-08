@@ -6,7 +6,9 @@ import {
   handleParseSpecAI,
   handleProcessSpecAnalysisAI,
   handleFindSimilarAI,
-  handleProcessSimilarityAnalysisAI
+  handleProcessSimilarityAnalysisAI,
+  handleValidateImplementationPrepare,
+  handleValidateImplementationProcess
 } from './ai-tools.js';
 
 /**
@@ -135,6 +137,35 @@ export function registerAITools(server: McpServer) {
       }
     },
     async (args) => handleToolExecution(handleProcessSimilarityAnalysisAI, args)
+  );
+
+  // AI-leveraged implementation validation (Step 1)
+  server.registerTool(
+    'speclinter_validate_implementation_prepare',
+    {
+      title: 'Prepare Implementation Validation',
+      description: 'Scan codebase for feature implementation and prepare AI validation analysis',
+      inputSchema: {
+        feature_name: z.string().describe('Name of the feature to validate'),
+        project_root: z.string().optional().describe('Root directory of the project (defaults to auto-detected project root)')
+      }
+    },
+    async (args) => handleToolExecution(handleValidateImplementationPrepare, args)
+  );
+
+  // Process AI validation results (Step 2)
+  server.registerTool(
+    'speclinter_validate_implementation_process',
+    {
+      title: 'Process AI Implementation Validation',
+      description: 'Process AI validation analysis results and provide comprehensive implementation assessment',
+      inputSchema: {
+        analysis: z.object({}).passthrough().describe('AI validation results matching AIFeatureValidationSchema'),
+        feature_name: z.string().describe('Name of the feature being validated'),
+        project_root: z.string().optional().describe('Root directory of the project')
+      }
+    },
+    async (args) => handleToolExecution(handleValidateImplementationProcess, args)
   );
 }
 
