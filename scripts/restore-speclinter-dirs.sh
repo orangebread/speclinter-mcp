@@ -250,6 +250,11 @@ main() {
         log_error "Not in a Git repository"
         exit 1
     fi
+
+    # Auto-setup hint for first-time users
+    if [[ "$force_mode" != "true" ]] && [[ ! -f ".git/hooks/post-merge" ]]; then
+        log_info "Tip: Run './scripts/setup-speclinter-restore.sh --auto' for automatic setup"
+    fi
     
     # User identification check (unless forced)
     if [[ "$force_mode" != "true" ]]; then

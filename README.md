@@ -2,7 +2,52 @@
 
 Transform specifications into structured tasks with built-in quality gates for AI-powered development.
 
-## ✨ Features
+## 📋 Table of Contents
+
+- [✨ Features](#-features)
+- [🚀 Quick Start](#-quick-start)
+  - [📋 Prerequisites](#-prerequisites)
+  - [📦 Installation](#-installation)
+  - [🔌 MCP Integration Setup](#-mcp-integration-setup)
+  - [✅ Verification & Testing](#-verification--testing)
+- [📁 Project Structure](#-project-structure)
+- [🧪 Understanding Gherkin Scenarios](#-understanding-gherkin-scenarios)
+  - [🎯 What are Gherkin Scenarios?](#-what-are-gherkin-scenarios)
+  - [🔧 How SpecLinter Uses Gherkin](#-how-speclinter-uses-gherkin)
+  - [🎨 SpecLinter's Gherkin Template](#-speclinters-gherkin-template)
+  - [🚀 Benefits for Development](#-benefits-for-development)
+  - [📚 Learn More About Gherkin](#-learn-more-about-gherkin)
+  - [💡 Pro Tips](#-pro-tips)
+- [💻 CLI Commands](#-cli-commands)
+- [🛠️ Available MCP Tools](#️-available-mcp-tools)
+  - [🚀 `speclinter_init_project`](#-speclinter_init_project)
+  - [🤖 Comprehensive Codebase Analysis](#-comprehensive-codebase-analysis)
+  - [🤖 AI-Leveraged Specification Parsing](#-ai-leveraged-specification-parsing)
+  - [🤖 AI-Leveraged Similarity Analysis](#-ai-leveraged-similarity-analysis)
+  - [📊 `speclinter_get_task_status`](#-speclinter_get_task_status)
+  - [🤖 `speclinter_validate_implementation_prepare`](#-speclinter_validate_implementation_prepare)
+  - [🔍 `speclinter_validate_implementation_process`](#-speclinter_validate_implementation_process)
+  - [✏️ `speclinter_update_task_status`](#️-speclinter_update_task_status)
+- [📊 Quality Grading System](#-quality-grading-system)
+  - [🎯 Grade Scale](#-grade-scale)
+  - [🔍 Quality Criteria](#-quality-criteria)
+  - [💡 Improvement Suggestions](#-improvement-suggestions)
+- [🤖 AI-Powered Implementation Validation](#-ai-powered-implementation-validation)
+  - [🎯 How It Works](#-how-it-works)
+  - [🌟 Key Benefits](#-key-benefits)
+  - [📋 Validation Results Include](#-validation-results-include)
+- [🚀 Workflow Scenarios](#-workflow-scenarios)
+  - [🆕 New Project Setup](#-new-project-setup)
+  - [🏢 Legacy Codebase Integration](#-legacy-codebase-integration)
+  - [🔄 Complete Feature Development Lifecycle](#-complete-feature-development-lifecycle)
+  - [👥 Team Collaboration](#-team-collaboration)
+  - [📈 Quality Improvement Journey](#-quality-improvement-journey)
+  - [🔍 Advanced Similarity Detection](#-advanced-similarity-detection)
+- [🔧 Development](#-development)
+- [🏗️ Architecture](#️-architecture)
+- [License](#license)
+
+## Features
 
 - **🤖 AI-Leveraged Analysis**: Semantic understanding of specifications vs. regex patterns
 - **📊 Quality Grading**: A+ to F grading with actionable improvement suggestions
@@ -12,13 +57,13 @@ Transform specifications into structured tasks with built-in quality gates for A
 - **🔍 Similarity Detection**: AI-powered semantic analysis with database-backed feature comparison
 - **🛡️ Type Safety**: Full TypeScript with Zod validation
 
-## 🚀 Quick Start
+## Quick Start
 
-### 📋 Prerequisites
+### Prerequisites
 - **Node.js** 18+ (recommended: use [nvm](https://github.com/nvm-sh/nvm) on macOS/Linux or [nvm-windows](https://github.com/coreybutler/nvm-windows) on Windows)
 - **Package Manager**: pnpm (recommended), npm, or yarn
 
-### 📦 Installation
+### Installation
 
 ```bash
 # Install pnpm if you haven't already (recommended)
@@ -32,7 +77,7 @@ pnpm install && pnpm build
 # yarn install && yarn build
 ```
 
-### 🔌 MCP Integration Setup
+### MCP Integration Setup
 
 SpecLinter works as an MCP (Model Context Protocol) server. Add this to your AI IDE's MCP configuration file:
 
@@ -55,7 +100,7 @@ SpecLinter works as an MCP (Model Context Protocol) server. Add this to your AI 
 
 > **⚠️ Important**: Replace `/absolute/path/to/speclinter-mcp` with the actual absolute path to your SpecLinter installation.
 
-### ✅ Verification & Testing
+### Verification & Testing
 
 ```bash
 # 1. Verify Node.js version
@@ -83,7 +128,7 @@ chmod +x dist/cli.js
 "Validate the implementation of my feature"
 ```
 
-## 📁 Project Structure
+## Project Structure
 
 SpecLinter creates this structure when initialized:
 
@@ -106,7 +151,94 @@ your-project/
             └── *.feature
 ```
 
-## 💻 CLI Commands
+## Understanding Gherkin Scenarios
+
+SpecLinter automatically generates **Gherkin scenarios** for each task to provide clear, testable acceptance criteria. These scenarios serve as both documentation and validation guidelines for your feature implementation.
+
+### What are Gherkin Scenarios?
+
+Gherkin is a business-readable, domain-specific language that describes software behavior without detailing how that behavior is implemented. It uses a simple syntax with keywords like `Given`, `When`, `Then`, and `And` to structure test scenarios.
+
+**Example Gherkin scenario:**
+```gherkin
+Feature: User Authentication
+
+  Scenario: Successful login with valid credentials
+    Given a user exists with email "user@example.com" and password "password123"
+    When the user submits the login form with correct credentials
+    Then the user should be redirected to the dashboard
+    And a session token should be created
+    And the user's last login time should be updated
+
+  Scenario: Failed login with invalid credentials
+    Given a user exists with email "user@example.com"
+    When the user submits the login form with incorrect password
+    Then an error message "Invalid credentials" should be displayed
+    And the user should remain on the login page
+    And no session token should be created
+```
+
+### How SpecLinter Uses Gherkin
+
+When you parse a specification, SpecLinter:
+
+1. **🤖 Analyzes each task** and generates appropriate Gherkin scenarios
+2. **📁 Creates `.feature` files** in the `gherkin/` directory for each task
+3. **🎯 Provides validation criteria** that AI can use to assess implementation quality
+4. **📋 Documents expected behavior** in a standardized, readable format
+
+### SpecLinter's Gherkin Template
+
+Each task gets a basic Gherkin template that you can expand:
+
+```gherkin
+Feature: [Task Title]
+
+  Scenario: [Task Title] - Happy Path
+    Given the system is ready
+    When [Task Summary/Action]
+    Then the acceptance criteria are met
+
+  Scenario: [Task Title] - Error Handling
+    Given the system is ready
+    When an error occurs
+    Then it should be handled gracefully
+```
+
+### Benefits for Development
+
+**For Developers:**
+- **📖 Clear Requirements**: Understand exactly what behavior is expected
+- **🧪 Test Guidance**: Use scenarios as a blueprint for writing actual tests
+- **🔍 Validation Criteria**: Know what SpecLinter's AI will check during implementation validation
+
+**For Teams:**
+- **🤝 Shared Understanding**: Business stakeholders and developers speak the same language
+- **📋 Documentation**: Self-documenting features with executable specifications
+- **🎯 Acceptance Criteria**: Clear definition of "done" for each task
+
+**For AI Validation:**
+- **🤖 Intelligent Assessment**: AI uses Gherkin scenarios to evaluate implementation completeness
+- **📊 Quality Scoring**: Scenarios provide structured criteria for quality assessment
+- **🔄 Iterative Improvement**: AI can suggest improvements based on scenario coverage
+
+### Learn More About Gherkin
+
+- **📖 Official Gherkin Documentation**: [cucumber.io/docs/gherkin](https://cucumber.io/docs/gherkin/)
+- **🎓 Gherkin Reference**: [cucumber.io/docs/gherkin/reference](https://cucumber.io/docs/gherkin/reference/)
+- **💡 Best Practices**: [cucumber.io/docs/bdd/better-gherkin](https://cucumber.io/docs/bdd/better-gherkin/)
+- **🧪 Cucumber Testing Framework**: [cucumber.io](https://cucumber.io/)
+
+### Pro Tips
+
+- **🎯 Expand the templates**: Customize generated scenarios with specific business logic
+- **🧪 Write actual tests**: Use Gherkin scenarios as blueprints for unit/integration tests
+- **🔄 Iterate and refine**: Update scenarios as requirements evolve
+- **👥 Collaborate**: Share scenarios with stakeholders for requirement validation
+
+> **🚀 Next Level**: While SpecLinter generates basic Gherkin scenarios for validation, you can expand them into full BDD (Behavior-Driven Development) test suites using frameworks like Cucumber, Jest-Cucumber, or SpecFlow.
+
+## CLI Commands
 
 SpecLinter is primarily designed for MCP integration, but includes these CLI commands:
 
@@ -118,11 +250,11 @@ node dist/cli.js status <feature>   # Show feature status
 
 > **💡 Note**: Project initialization uses the MCP `speclinter_init_project` tool.
 
-## 🛠️ Available MCP Tools
+## Available MCP Tools
 
 When using SpecLinter through AI IDEs or the MCP protocol, these tools are available:
 
-### 🚀 `speclinter_init_project`
+### `speclinter_init_project`
 Initialize SpecLinter in your project with default configuration and templates.
 
 **Parameters:**
@@ -136,9 +268,9 @@ Initialize SpecLinter in your project with default configuration and templates.
 
 > **🎯 Auto-Magic**: Automatically detects your project root directory - no manual configuration needed!
 
-### 🤖 Comprehensive Codebase Analysis
+### Comprehensive Codebase Analysis
 
-#### 🔍 `speclinter_analyze_codebase_prepare`
+#### `speclinter_analyze_codebase_prepare`
 Comprehensive codebase analysis that generates rich project documentation and context files.
 
 **Parameters:**
@@ -152,7 +284,7 @@ Comprehensive codebase analysis that generates rich project documentation and co
 - 📁 Collected files with package.json and README context
 - 🔧 Follow-up tool for processing results
 
-#### 🔄 `speclinter_analyze_codebase_process`
+#### `speclinter_analyze_codebase_process`
 Process comprehensive codebase analysis results and update SpecLinter context files.
 
 **Parameters:**
@@ -165,9 +297,9 @@ Process comprehensive codebase analysis results and update SpecLinter context fi
 - 📊 Comprehensive tech stack and architectural analysis
 - 💡 AI-optimized documentation for effective development assistance
 
-### 🤖 AI-Leveraged Specification Parsing
+### AI-Leveraged Specification Parsing
 
-#### 📝 `speclinter_parse_spec_prepare`
+#### `speclinter_parse_spec_prepare`
 **Step 1**: Prepare specification for AI analysis and return structured analysis prompt.
 
 **Parameters:**
@@ -181,7 +313,7 @@ Process comprehensive codebase analysis results and update SpecLinter context fi
 - 📋 Existing project patterns and tech stack information
 - 🔧 Follow-up tool instructions
 
-#### 🔄 `speclinter_parse_spec_process`
+#### `speclinter_parse_spec_process`
 **Step 2**: Process AI specification analysis results and create SpecLinter tasks.
 
 **Parameters:**
@@ -200,9 +332,9 @@ Process comprehensive codebase analysis results and update SpecLinter context fi
 - 💡 AI-powered improvement suggestions
 - 🔍 Semantic similarity analysis
 
-### 🤖 AI-Leveraged Similarity Analysis
+### AI-Leveraged Similarity Analysis
 
-#### 🔍 `speclinter_find_similar_prepare`
+#### `speclinter_find_similar_prepare`
 **Step 1**: Prepare specification for AI similarity analysis against existing features.
 
 **Parameters:**
@@ -215,7 +347,7 @@ Process comprehensive codebase analysis results and update SpecLinter context fi
 - 📋 Existing features for comparison
 - 🔧 Follow-up tool instructions
 
-#### 🔄 `speclinter_find_similar_process`
+#### `speclinter_find_similar_process`
 **Step 2**: Process AI similarity analysis results and return recommendations.
 
 **Parameters:**
@@ -228,7 +360,7 @@ Process comprehensive codebase analysis results and update SpecLinter context fi
 - 💡 Intelligent recommendations (merge/separate/refactor)
 - 📊 Detailed difference analysis
 
-### 📊 `speclinter_get_task_status`
+### `speclinter_get_task_status`
 Get the current status and progress of a feature's tasks.
 
 **Parameters:**
@@ -240,7 +372,7 @@ Get the current status and progress of a feature's tasks.
 - 📊 Overall progress percentage
 - 🕒 Last updated timestamp
 
-### 🤖 `speclinter_validate_implementation_prepare`
+### `speclinter_validate_implementation_prepare`
 **Step 1**: Scan codebase for feature implementation and prepare AI validation analysis.
 
 **Parameters:**
@@ -253,7 +385,7 @@ Get the current status and progress of a feature's tasks.
 - 🧪 Gherkin scenarios for validation criteria
 - 🔧 Follow-up tool instructions for AI processing
 
-### 🔍 `speclinter_validate_implementation_process`
+### `speclinter_validate_implementation_process`
 **Step 2**: Process AI validation analysis and provide comprehensive implementation assessment.
 
 **Parameters:**
@@ -269,7 +401,7 @@ Get the current status and progress of a feature's tasks.
 - 📈 Prioritized next steps for feature completion
 - 🤖 AI insights and intelligent recommendations
 
-### ✏️ `speclinter_update_task_status`
+### `speclinter_update_task_status`
 Update the status of a specific task and regenerate active files.
 
 **Parameters:**
@@ -285,11 +417,11 @@ Update the status of a specific task and regenerate active files.
 
 
 
-## 📊 Quality Grading System
+## Quality Grading System
 
 SpecLinter analyzes specifications and assigns quality grades:
 
-### 🎯 Grade Scale
+### Grade Scale
 - **🏆 A+ (95-100)**: Exceptional specification with comprehensive details
 - **⭐ A (90-94)**: Excellent specification with clear requirements
 - **✅ B (80-89)**: Good specification with minor improvements needed
@@ -297,14 +429,14 @@ SpecLinter analyzes specifications and assigns quality grades:
 - **❌ D (60-69)**: Poor specification requiring significant enhancement
 - **🚫 F (0-59)**: Failing specification with major issues
 
-### 🔍 Quality Criteria
+### Quality Criteria
 - **✅ Acceptance Criteria**: Clear, measurable success conditions
 - **⚠️ Error Handling**: Specified failure scenarios and edge cases
 - **🎯 Specificity**: Concrete requirements vs. vague terms
 - **📋 Completeness**: Sufficient detail for implementation
 - **👤 User Stories**: Proper format and context (optional)
 
-### 💡 Improvement Suggestions
+### Improvement Suggestions
 SpecLinter provides actionable feedback:
 - 📊 Replace vague terms with specific metrics
 - ✅ Add missing acceptance criteria
@@ -312,11 +444,11 @@ SpecLinter provides actionable feedback:
 - 📝 Structure as user stories when appropriate
 - 📖 Expand brief specifications with implementation details
 
-## 🤖 AI-Powered Implementation Validation
+## AI-Powered Implementation Validation
 
 SpecLinter's revolutionary validation system uses AI to intelligently assess your feature implementations against specifications and project patterns.
 
-### 🎯 How It Works
+### How It Works
 
 1. **🔍 Codebase Scanning**: Automatically finds implementation files related to your feature
 2. **🧠 AI Analysis**: Semantic understanding of what your code actually does vs. what was specified
@@ -326,7 +458,7 @@ SpecLinter's revolutionary validation system uses AI to intelligently assess you
 6. **🔒 Security & Performance**: Identifies potential security and performance issues
 7. **📈 Actionable Insights**: Provides prioritized recommendations for improvement
 
-### 🌟 Key Benefits
+### Key Benefits
 
 - **Semantic Understanding**: AI knows the difference between a login form and a search form
 - **Pattern Awareness**: Validates against your project's specific coding patterns
@@ -335,7 +467,7 @@ SpecLinter's revolutionary validation system uses AI to intelligently assess you
 - **Intelligent Recommendations**: Specific, actionable next steps for feature completion
 - **Comprehensive Coverage**: Analyzes architecture, security, performance, and testing
 
-### 📋 Validation Results Include
+### Validation Results Include
 
 - **Task-by-Task Analysis**: Implementation status and quality score for each task
 - **Code Quality Issues**: Identified problems with severity levels and fix suggestions
@@ -347,11 +479,11 @@ SpecLinter's revolutionary validation system uses AI to intelligently assess you
 
 > **🚀 Revolutionary Approach**: Unlike traditional testing tools that only check syntax, SpecLinter's AI validation understands intent, context, and quality - providing insights no other tool can match.
 
-## 🚀 Workflow Scenarios
+## Workflow Scenarios
 
 Real-world user journeys demonstrating SpecLinter's power in different development contexts.
 
-### 🆕 New Project Setup
+### New Project Setup
 **Sarah starts a React e-commerce project with quality practices from day one**
 
 ```gherkin
@@ -370,7 +502,7 @@ Scenario: Creating first feature from specification
   And saves tasks in `speclinter-tasks/product-catalog/` directory
 ```
 
-### 🏢 Legacy Codebase Integration
+### Legacy Codebase Integration
 **Marcus adds SpecLinter to a 3-year-old Node.js API project**
 
 ```gherkin
@@ -389,7 +521,7 @@ Scenario: Detecting duplicate functionality
   And recommends extending existing features vs. creating new ones
 ```
 
-### 🔄 Complete Feature Development Lifecycle
+### Complete Feature Development Lifecycle
 **Emma develops a notification system from spec to deployment**
 
 ```gherkin
@@ -411,7 +543,7 @@ Scenario: Task progression and AI validation
   And automatically updates task statuses based on actual implementation found
 ```
 
-### 👥 Team Collaboration
+### Team Collaboration
 **Development team coordinates feature development**
 
 ```gherkin
@@ -429,7 +561,7 @@ Scenario: Avoiding duplicate work
   And recommends coordination between Lisa and Tom
 ```
 
-### 📈 Quality Improvement Journey
+### Quality Improvement Journey
 **David improves specification quality over time**
 
 ```gherkin
@@ -446,7 +578,7 @@ Scenario: Iterative specification improvement
   And provides suggestions for A-grade quality
 ```
 
-### 🔍 Advanced Similarity Detection
+### Advanced Similarity Detection
 **Large team prevents feature duplication across microservices**
 
 ```gherkin
@@ -467,7 +599,7 @@ Scenario: Technical debt identification
 
 > **💡 Pro Tip**: These scenarios show SpecLinter's evolution from simple spec parsing to intelligent development orchestration. Start with basic workflows and gradually leverage advanced features like similarity detection and team coordination.
 
-## 🔧 Development
+## Development
 
 ```bash
 git clone <repository-url>
@@ -481,7 +613,7 @@ pnpm lint         # Lint code
 pnpm dev          # Watch mode
 ```
 
-## 🏗️ Architecture
+## Architecture
 
 - **🔒 Type Safety**: Full TypeScript with Zod validation
 - **🤖 AI-Leveraged**: Two-step pattern for semantic analysis

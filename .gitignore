@@ -11,6 +11,8 @@ coverage/
 .vscode/
 .idea/
 
+scripts/toggle-git-profile.sh
+
 # SpecLinter generated files (uncomment to ignore)
 # .speclinter/*
 # speclinter-tasks/

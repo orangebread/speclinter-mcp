@@ -212,17 +212,56 @@ uninstall() {
     log_success "SpecLinter directory restoration uninstalled"
 }
 
+# Function to auto-detect if setup is needed
+needs_setup() {
+    # Check if hook exists and is executable
+    if [[ ! -f ".git/hooks/post-merge" ]] || [[ ! -x ".git/hooks/post-merge" ]]; then
+        return 0  # Needs setup
+    fi
+
+    # Check if user is configured
+    local git_user_name=$(git config user.name 2>/dev/null || echo "")
+    local git_user_email=$(git config user.email 2>/dev/null || echo "")
+
+    if [[ "$git_user_name" == "$REPO_OWNER_NAME" ]] || [[ "$git_user_email" == "$REPO_OWNER_EMAIL" ]]; then
+        return 1  # Already set up
+    fi
+
+    return 0  # Needs setup
+}
+
+# Function to run automatic setup (minimal prompts)
+auto_setup() {
+    log_info "Auto-configuring SpecLinter directory restoration..."
+
+    # Auto-install hook without prompts
+    if [[ ! -f ".git/hooks/post-merge" ]] || [[ ! -x ".git/hooks/post-merge" ]]; then
+        chmod +x ".git/hooks/post-merge" 2>/dev/null || true
+        log_success "Git post-merge hook configured"
+    fi
+
+    # Auto-configure Git if we can detect the user
+    local current_user=$(whoami 2>/dev/null || echo "")
+    if [[ "$current_user" == "$REPO_OWNER_NAME" ]]; then
+        git config user.name "$REPO_OWNER_NAME" 2>/dev/null || true
+        git config user.email "$REPO_OWNER_EMAIL" 2>/dev/null || true
+        log_success "Git configuration auto-detected and set"
+    fi
+
+    log_success "SpecLinter auto-setup completed!"
+}
+
 # Function to run full setup
 full_setup() {
     log_info "Setting up SpecLinter directory restoration system..."
     echo
-    
+
     configure_git
     echo
-    
+
     install_hook
     echo
-    
+
     log_success "SpecLinter directory restoration setup completed!"
     echo
     log_info "The system will now automatically restore SpecLinter directories"
@@ -240,7 +279,8 @@ main() {
     local enable_verbose_only=false
     local disable_hook_only=false
     local uninstall_only=false
-    
+    local auto_mode=false
+
     # Parse command line arguments
     while [[ $# -gt 0 ]]; do
         case $1 in
@@ -268,6 +308,10 @@ main() {
                 uninstall_only=true
                 shift
                 ;;
+            --auto)
+                auto_mode=true
+                shift
+                ;;
             *)
                 log_error "Unknown option: $1"
                 echo "Use --help for usage information"
@@ -275,10 +319,10 @@ main() {
                 ;;
         esac
     done
-    
+
     # Check if we're in a Git repository
     check_git_repo
-    
+
     # Execute based on options
     if [[ "$configure_git_only" == "true" ]]; then
         configure_git
@@ -290,8 +334,24 @@ main() {
         disable_hook
     elif [[ "$uninstall_only" == "true" ]]; then
         uninstall
+    elif [[ "$auto_mode" == "true" ]]; then
+        auto_setup
     else
-        full_setup
+        # Smart default: auto-setup if needed, otherwise full setup
+        if needs_setup; then
+            echo "SpecLinter restoration system not configured."
+            echo "Run automatic setup? (Y/n): "
+            read -n 1 -r
+            echo
+            if [[ $REPLY =~ ^[Nn]$ ]]; then
+                full_setup
+            else
+                auto_setup
+            fi
+        else
+            log_success "SpecLinter restoration system already configured!"
+            log_info "Use --help to see configuration options"
+        fi
     fi
 }
 
