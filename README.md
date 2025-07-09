@@ -1,50 +1,53 @@
+```
+ ██████╗ ██████╗ ███████╗ ██████╗██╗     ██╗███╗   ██╗████████╗███████╗██████╗
+██╔════╝ ██╔══██╗██╔════╝██╔════╝██║     ██║████╗  ██║╚══██╔══╝██╔════╝██╔══██╗
+███████╗ ██████╔╝█████╗  ██║     ██║     ██║██╔██╗ ██║   ██║   █████╗  ██████╔╝
+╚════██║ ██╔═══╝ ██╔══╝  ██║     ██║     ██║██║╚██╗██║   ██║   ██╔══╝  ██╔══██╗
+███████║ ██║     ███████╗╚██████╗███████╗██║██║ ╚████║   ██║   ███████╗██║  ██║
+╚══════╝ ╚═╝     ╚══════╝ ╚═════╝╚══════╝╚═╝╚═╝  ╚═══╝   ╚═╝   ╚══════╝╚═╝  ╚═╝
+
+    🔍 AI-Powered Specification Analysis  •  📊 Quality Grading  •  ⚡ Task Generation
+```
+
 # SpecLinter MCP
 
 Transform specifications into structured tasks with built-in quality gates for AI-powered development.
 
-## 📋 Table of Contents
+## Table of Contents
 
-- [✨ Features](#-features)
-- [🚀 Quick Start](#-quick-start)
-  - [📋 Prerequisites](#-prerequisites)
-  - [📦 Installation](#-installation)
-  - [🔌 MCP Integration Setup](#-mcp-integration-setup)
-  - [✅ Verification & Testing](#-verification--testing)
-- [📁 Project Structure](#-project-structure)
-- [🧪 Understanding Gherkin Scenarios](#-understanding-gherkin-scenarios)
-  - [🎯 What are Gherkin Scenarios?](#-what-are-gherkin-scenarios)
-  - [🔧 How SpecLinter Uses Gherkin](#-how-speclinter-uses-gherkin)
-  - [🎨 SpecLinter's Gherkin Template](#-speclinters-gherkin-template)
-  - [🚀 Benefits for Development](#-benefits-for-development)
-  - [📚 Learn More About Gherkin](#-learn-more-about-gherkin)
-  - [💡 Pro Tips](#-pro-tips)
-- [💻 CLI Commands](#-cli-commands)
-- [🛠️ Available MCP Tools](#️-available-mcp-tools)
-  - [🚀 `speclinter_init_project`](#-speclinter_init_project)
-  - [🤖 Comprehensive Codebase Analysis](#-comprehensive-codebase-analysis)
-  - [🤖 AI-Leveraged Specification Parsing](#-ai-leveraged-specification-parsing)
-  - [🤖 AI-Leveraged Similarity Analysis](#-ai-leveraged-similarity-analysis)
-  - [📊 `speclinter_get_task_status`](#-speclinter_get_task_status)
-  - [🤖 `speclinter_validate_implementation_prepare`](#-speclinter_validate_implementation_prepare)
-  - [🔍 `speclinter_validate_implementation_process`](#-speclinter_validate_implementation_process)
-  - [✏️ `speclinter_update_task_status`](#️-speclinter_update_task_status)
-- [📊 Quality Grading System](#-quality-grading-system)
-  - [🎯 Grade Scale](#-grade-scale)
-  - [🔍 Quality Criteria](#-quality-criteria)
-  - [💡 Improvement Suggestions](#-improvement-suggestions)
-- [🤖 AI-Powered Implementation Validation](#-ai-powered-implementation-validation)
-  - [🎯 How It Works](#-how-it-works)
-  - [🌟 Key Benefits](#-key-benefits)
-  - [📋 Validation Results Include](#-validation-results-include)
-- [🚀 Workflow Scenarios](#-workflow-scenarios)
-  - [🆕 New Project Setup](#-new-project-setup)
-  - [🏢 Legacy Codebase Integration](#-legacy-codebase-integration)
-  - [🔄 Complete Feature Development Lifecycle](#-complete-feature-development-lifecycle)
-  - [👥 Team Collaboration](#-team-collaboration)
-  - [📈 Quality Improvement Journey](#-quality-improvement-journey)
-  - [🔍 Advanced Similarity Detection](#-advanced-similarity-detection)
-- [🔧 Development](#-development)
-- [🏗️ Architecture](#️-architecture)
+- [Features](#features)
+- [Quick Start](#quick-start)
+  - [Prerequisites](#prerequisites)
+  - [Installation](#installation)
+  - [MCP Integration Setup](#mcp-integration-setup)
+  - [Verification & Testing](#verification--testing)
+- [Project Structure](#project-structure)
+- [Understanding Gherkin Scenarios](#understanding-gherkin-scenarios)
+  - [What are Gherkin Scenarios?](#what-are-gherkin-scenarios)
+  - [How SpecLinter Uses Gherkin](#how-speclinter-uses-gherkin)
+  - [SpecLinter's Gherkin Template](#speclinters-gherkin-template)
+  - [Benefits for Development](#benefits-for-development)
+  - [Learn More About Gherkin](#learn-more-about-gherkin)
+  - [Pro Tips](#pro-tips)
+- [CLI Commands](#cli-commands)
+- [Available Tools](#available-tools)
+- [Quality Grading System](#quality-grading-system)
+  - [Grade Scale](#grade-scale)
+  - [Quality Criteria](#quality-criteria)
+  - [Improvement Suggestions](#improvement-suggestions)
+- [AI-Powered Implementation Validation](#ai-powered-implementation-validation)
+  - [How It Works](#how-it-works)
+  - [Key Benefits](#key-benefits)
+  - [Validation Results Include](#validation-results-include)
+- [Workflow Scenarios](#workflow-scenarios)
+  - [New Project Setup](#new-project-setup)
+  - [Legacy Codebase Integration](#legacy-codebase-integration)
+  - [Complete Feature Development Lifecycle](#complete-feature-development-lifecycle)
+  - [Team Collaboration](#team-collaboration)
+  - [Quality Improvement Journey](#quality-improvement-journey)
+  - [Advanced Similarity Detection](#advanced-similarity-detection)
+- [Development](#development)
+- [Architecture](#architecture)
 - [License](#license)
 
 ## Features
@@ -250,170 +253,64 @@ node dist/cli.js status <feature>   # Show feature status
 
 > **💡 Note**: Project initialization uses the MCP `speclinter_init_project` tool.
 
-## Available MCP Tools
+## Available Tools
 
-When using SpecLinter through AI IDEs or the MCP protocol, these tools are available:
+SpecLinter provides these AI-powered tools through your IDE. Simply ask your AI assistant to use them:
 
-### `speclinter_init_project`
-Initialize SpecLinter in your project with default configuration and templates.
+### Project Setup
+**Initialize SpecLinter** - Sets up SpecLinter in your project with smart defaults
+```
+"Initialize SpecLinter in my project"
+"Set up SpecLinter for this codebase"
+```
 
-**Parameters:**
-- `project_root` (string, optional) - Root directory for the project (defaults to current working directory)
-- `force_reinit` (boolean, optional, default: false) - Force reinitialization if already initialized
+### Codebase Analysis
+**Analyze Codebase** - Understands your project's patterns, tech stack, and architecture
+```
+"Analyze my codebase to understand the patterns and tech stack"
+"Generate project context documentation from my code"
+```
 
-**Returns:**
-- ✅ Success status and message
-- 📁 List of directories created
-- 📋 Next steps for configuration
+### Specification Parsing
+**Parse Specifications** - Transforms requirements into structured, actionable tasks
+```
+"Parse this spec: Create a user authentication system with email verification"
+"Break down this feature: [your specification here]"
+"Convert this requirement into SpecLinter tasks: [specification]"
+```
 
-> **🎯 Auto-Magic**: Automatically detects your project root directory - no manual configuration needed!
+### Similarity Detection
+**Find Similar Features** - Prevents duplicate work by identifying existing functionality
+```
+"Check if this feature already exists: [specification]"
+"Find similar functionality to: user profile management"
+"Are there any existing features like: [description]"
+```
 
-### Comprehensive Codebase Analysis
+### Task Management
+**Check Task Status** - Shows progress and completion status of your features
+```
+"Show me the status of my authentication-system tasks"
+"What's the progress on the user-dashboard feature?"
+"Display task completion for [feature-name]"
+```
 
-#### `speclinter_analyze_codebase_prepare`
-Comprehensive codebase analysis that generates rich project documentation and context files.
+**Update Task Status** - Marks tasks as completed, in-progress, or blocked
+```
+"Mark the database setup task as completed"
+"Update task [task-id] to in-progress"
+"Set the API integration task to blocked"
+```
 
-**Parameters:**
-- `project_root` (string, optional) - Root directory of the project (defaults to auto-detected project root)
-- `analysis_depth` (enum, optional, default: 'standard') - Depth of analysis: 'quick', 'standard', or 'deep'
-- `max_files` (number, optional, default: 50) - Maximum number of files to analyze
-- `max_file_size` (number, optional, default: 50000) - Maximum file size in bytes to include
+### Implementation Validation
+**Validate Implementation** - AI-powered assessment of your code against specifications
+```
+"Validate the implementation of my authentication feature"
+"Check if my user-dashboard code meets the requirements"
+"Analyze the quality of my [feature-name] implementation"
+```
 
-**Returns:**
-- 🎯 Comprehensive AI analysis prompt with project context
-- 📁 Collected files with package.json and README context
-- 🔧 Follow-up tool for processing results
-
-#### `speclinter_analyze_codebase_process`
-Process comprehensive codebase analysis results and update SpecLinter context files.
-
-**Parameters:**
-- `analysis` (object, required) - AI analysis results matching AICodebaseAnalysisWithContextSchema
-- `contextFiles` (object, optional) - AI-generated context files
-- `project_root` (string, optional) - Root directory of the project
-
-**Returns:**
-- ✅ Rich, project-specific context files (project.md, architecture.md, patterns.md)
-- 📊 Comprehensive tech stack and architectural analysis
-- 💡 AI-optimized documentation for effective development assistance
-
-### AI-Leveraged Specification Parsing
-
-#### `speclinter_parse_spec_prepare`
-**Step 1**: Prepare specification for AI analysis and return structured analysis prompt.
-
-**Parameters:**
-- `spec` (string, required) - The specification text to parse
-- `feature_name` (string, required) - Name for the feature (used for directory)
-- `context` (string, optional) - Additional context about the implementation
-- `project_root` (string, optional) - Root directory of the project
-
-**Returns:**
-- 🎯 Structured AI analysis prompt with project context
-- 📋 Existing project patterns and tech stack information
-- 🔧 Follow-up tool instructions
-
-#### `speclinter_parse_spec_process`
-**Step 2**: Process AI specification analysis results and create SpecLinter tasks.
-
-**Parameters:**
-- `analysis` (object, required) - AI analysis results matching AISpecAnalysisSchema
-- `feature_name` (string, required) - Name for the feature
-- `original_spec` (string, optional) - Original specification text
-- `project_root` (string, optional) - Root directory of the project
-- `deduplication_strategy` (enum, optional, default: 'prompt') - How to handle duplicates: 'prompt', 'merge', 'replace', 'skip'
-- `similarity_threshold` (number, optional) - Similarity threshold for detecting duplicates (0.0 to 1.0)
-- `skip_similarity_check` (boolean, optional, default: false) - Skip similarity checking entirely
-
-**Returns:**
-- 📊 Quality grade (A+ to F) and score with AI insights
-- 🔧 Generated tasks with intelligent acceptance criteria
-- 📄 Files created (task files, Gherkin scenarios)
-- 💡 AI-powered improvement suggestions
-- 🔍 Semantic similarity analysis
-
-### AI-Leveraged Similarity Analysis
-
-#### `speclinter_find_similar_prepare`
-**Step 1**: Prepare specification for AI similarity analysis against existing features.
-
-**Parameters:**
-- `spec` (string, required) - Specification to find similarities for
-- `threshold` (number, optional, default: 0.8) - Similarity threshold (0.0 to 1.0)
-- `project_root` (string, optional) - Root directory of the project
-
-**Returns:**
-- 🎯 Structured AI similarity analysis prompt
-- 📋 Existing features for comparison
-- 🔧 Follow-up tool instructions
-
-#### `speclinter_find_similar_process`
-**Step 2**: Process AI similarity analysis results and return recommendations.
-
-**Parameters:**
-- `analysis` (object, required) - AI analysis results matching AISimilarityAnalysisSchema
-- `threshold` (number, optional, default: 0.8) - Similarity threshold used
-- `project_root` (string, optional) - Root directory of the project
-
-**Returns:**
-- 📋 Semantic similarity analysis with confidence scores
-- 💡 Intelligent recommendations (merge/separate/refactor)
-- 📊 Detailed difference analysis
-
-### `speclinter_get_task_status`
-Get the current status and progress of a feature's tasks.
-
-**Parameters:**
-- `feature_name` (string, required) - Name of the feature to check
-- `project_root` (string, optional) - Root directory of the project
-
-**Returns:**
-- 📈 Total, completed, in-progress, and blocked task counts
-- 📊 Overall progress percentage
-- 🕒 Last updated timestamp
-
-### `speclinter_validate_implementation_prepare`
-**Step 1**: Scan codebase for feature implementation and prepare AI validation analysis.
-
-**Parameters:**
-- `feature_name` (string, required) - Name of the feature to validate
-- `project_root` (string, optional) - Root directory of the project
-
-**Returns:**
-- 🎯 Comprehensive AI validation prompt with implementation analysis
-- 📁 Scanned implementation files and their relevance scores
-- 🧪 Gherkin scenarios for validation criteria
-- 🔧 Follow-up tool instructions for AI processing
-
-### `speclinter_validate_implementation_process`
-**Step 2**: Process AI validation analysis and provide comprehensive implementation assessment.
-
-**Parameters:**
-- `analysis` (object, required) - AI validation results matching AIFeatureValidationSchema
-- `feature_name` (string, required) - Name of the feature being validated
-- `project_root` (string, optional) - Root directory of the project
-
-**Returns:**
-- 📊 Comprehensive validation results with quality scores
-- ✅ Task-by-task implementation status and recommendations
-- 🏗️ Architectural alignment assessment
-- 🔒 Security and performance considerations
-- 📈 Prioritized next steps for feature completion
-- 🤖 AI insights and intelligent recommendations
-
-### `speclinter_update_task_status`
-Update the status of a specific task and regenerate active files.
-
-**Parameters:**
-- `feature_name` (string, required) - Name of the feature
-- `task_id` (string, required) - ID of the task to update
-- `status` (enum, required) - New status: `not_started`, `in_progress`, `completed`, `blocked`
-- `notes` (string, optional) - Optional notes about the status change
-- `project_root` (string, optional) - Root directory of the project
-
-**Returns:**
-- 📝 Updated task information
-- ✅ Confirmation of status change
+> **💡 Pro Tip**: Just describe what you want in natural language - the AI will automatically choose and configure the right tools for you!
 
 
 
