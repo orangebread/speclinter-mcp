@@ -24,10 +24,9 @@ jobs:
     name: Rename SpecLinter Directories to Examples
     runs-on: ubuntu-latest
     
-    # Security checks: Only run for non-owner pushes to prevent conflicts with local automation
-    # Skip when repository owner pushes to avoid conflicts with post-merge hook
+    # Security checks: Only run for the repository owner and not on forks
+    # This ensures directories are renamed for all users cloning the repo
     if: |
-      github.actor != 'orangebread' &&
       github.repository_owner == 'orangebread' &&
       !github.event.repository.fork
     
