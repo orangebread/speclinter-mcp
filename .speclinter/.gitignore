@@ -1,0 +1,3 @@
+cache/
+*.db
+*.db-journal
