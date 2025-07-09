@@ -73,11 +73,20 @@ jobs:
         if: steps.detect.outputs.speclinter_exists == 'true'
         run: |
           echo "Renaming .speclinter to .speclinter-example..."
-          mv .speclinter .speclinter-example
-          if [ $? -eq 0 ]; then
-            echo "Successfully renamed .speclinter directory"
+
+          # Use cp + rm approach for more reliable handling of all file types
+          if cp -r .speclinter .speclinter-example; then
+            echo "Successfully copied .speclinter to .speclinter-example"
+            if rm -rf .speclinter; then
+              echo "Successfully removed original .speclinter directory"
+              echo "Successfully renamed .speclinter directory"
+            else
+              echo "Error: Failed to remove original .speclinter directory"
+              rm -rf .speclinter-example  # Clean up partial copy
+              exit 1
+            fi
           else
-            echo "Error: Failed to rename .speclinter directory"
+            echo "Error: Failed to copy .speclinter directory"
             exit 1
           fi
       
@@ -86,11 +95,20 @@ jobs:
         if: steps.detect.outputs.tasks_exists == 'true'
         run: |
           echo "Renaming speclinter-tasks to speclinter-tasks-example..."
-          mv speclinter-tasks speclinter-tasks-example
-          if [ $? -eq 0 ]; then
-            echo "Successfully renamed speclinter-tasks directory"
+
+          # Use cp + rm approach for more reliable handling of all file types
+          if cp -r speclinter-tasks speclinter-tasks-example; then
+            echo "Successfully copied speclinter-tasks to speclinter-tasks-example"
+            if rm -rf speclinter-tasks; then
+              echo "Successfully removed original speclinter-tasks directory"
+              echo "Successfully renamed speclinter-tasks directory"
+            else
+              echo "Error: Failed to remove original speclinter-tasks directory"
+              rm -rf speclinter-tasks-example  # Clean up partial copy
+              exit 1
+            fi
           else
-            echo "Error: Failed to rename speclinter-tasks directory"
+            echo "Error: Failed to copy speclinter-tasks directory"
             exit 1
           fi
       
