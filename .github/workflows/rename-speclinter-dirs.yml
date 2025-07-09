@@ -1,0 +1,141 @@
+# GitHub Actions Workflow: Rename SpecLinter Directories
+#
+# Purpose: Automatically rename .speclinter and speclinter-tasks directories to 
+#          .speclinter-example and speclinter-tasks-example when code is pushed 
+#          to the main branch. This prevents conflicts for users cloning the repo.
+#
+# Security: Only runs for the repository owner (orangebread) and not on forks
+# Triggers: Push events to the main branch only
+# Permissions: Minimal - only contents:write for committing changes
+
+name: Rename SpecLinter Directories
+
+# Trigger only on pushes to main branch
+on:
+  push:
+    branches: [main]
+
+# Minimal permissions - only what's needed for the task
+permissions:
+  contents: write
+
+jobs:
+  rename-directories:
+    name: Rename SpecLinter Directories to Examples
+    runs-on: ubuntu-latest
+    
+    # Security checks: Only run for repository owner and not on forks
+    if: |
+      github.actor == 'orangebread' && 
+      github.repository_owner == 'orangebread' && 
+      !github.event.repository.fork
+    
+    steps:
+      # Checkout the repository with full history
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+      
+      # Configure Git for automated commits
+      - name: Configure Git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+      
+      # Detect if target directories exist and need renaming
+      - name: Detect directories to rename
+        id: detect
+        run: |
+          echo "Checking for directories that need renaming..."
+          
+          # Check for .speclinter directory
+          if [ -d ".speclinter" ] && [ ! -d ".speclinter-example" ]; then
+            echo "speclinter_exists=true" >> $GITHUB_OUTPUT
+            echo "Found .speclinter directory that needs renaming"
+          else
+            echo "speclinter_exists=false" >> $GITHUB_OUTPUT
+            echo "No .speclinter directory to rename or .speclinter-example already exists"
+          fi
+          
+          # Check for speclinter-tasks directory
+          if [ -d "speclinter-tasks" ] && [ ! -d "speclinter-tasks-example" ]; then
+            echo "tasks_exists=true" >> $GITHUB_OUTPUT
+            echo "Found speclinter-tasks directory that needs renaming"
+          else
+            echo "tasks_exists=false" >> $GITHUB_OUTPUT
+            echo "No speclinter-tasks directory to rename or speclinter-tasks-example already exists"
+          fi
+      
+      # Rename .speclinter directory if it exists
+      - name: Rename .speclinter to .speclinter-example
+        if: steps.detect.outputs.speclinter_exists == 'true'
+        run: |
+          echo "Renaming .speclinter to .speclinter-example..."
+          mv .speclinter .speclinter-example
+          if [ $? -eq 0 ]; then
+            echo "Successfully renamed .speclinter directory"
+          else
+            echo "Error: Failed to rename .speclinter directory"
+            exit 1
+          fi
+      
+      # Rename speclinter-tasks directory if it exists
+      - name: Rename speclinter-tasks to speclinter-tasks-example
+        if: steps.detect.outputs.tasks_exists == 'true'
+        run: |
+          echo "Renaming speclinter-tasks to speclinter-tasks-example..."
+          mv speclinter-tasks speclinter-tasks-example
+          if [ $? -eq 0 ]; then
+            echo "Successfully renamed speclinter-tasks directory"
+          else
+            echo "Error: Failed to rename speclinter-tasks directory"
+            exit 1
+          fi
+      
+      # Check if any changes were made
+      - name: Check for changes
+        id: changes
+        run: |
+          git add .
+          if git diff --staged --quiet; then
+            echo "has_changes=false" >> $GITHUB_OUTPUT
+            echo "No changes to commit"
+          else
+            echo "has_changes=true" >> $GITHUB_OUTPUT
+            echo "Changes detected, will commit"
+          fi
+      
+      # Commit and push changes if any were made
+      - name: Commit and push changes
+        if: steps.changes.outputs.has_changes == 'true'
+        run: |
+          echo "Committing directory renames..."
+          git commit -m "chore: rename SpecLinter directories to examples
+          
+          - Renamed .speclinter to .speclinter-example (if present)
+          - Renamed speclinter-tasks to speclinter-tasks-example (if present)
+          
+          This prevents conflicts for users cloning the repository."
+          
+          echo "Pushing changes to main branch..."
+          git push origin main
+          
+          if [ $? -eq 0 ]; then
+            echo "Successfully pushed changes"
+          else
+            echo "Error: Failed to push changes"
+            exit 1
+          fi
+      
+      # Log completion
+      - name: Log completion
+        run: |
+          if [ "${{ steps.changes.outputs.has_changes }}" == "true" ]; then
+            echo "✅ Directory renaming workflow completed successfully"
+            echo "Directories have been renamed and changes pushed to main branch"
+          else
+            echo "✅ Directory renaming workflow completed - no changes needed"
+            echo "No SpecLinter directories found that required renaming"
+          fi
