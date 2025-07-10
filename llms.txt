@@ -1,0 +1,131 @@
+# SpecLinter MCP - AI-Powered Specification Analysis
+
+SpecLinter is a Model Context Protocol (MCP) server that transforms specifications into structured tasks with built-in quality gates for AI-powered development.
+
+## Quick Setup
+
+To use SpecLinter as an MCP server, add this to your AI IDE's MCP configuration:
+
+```json
+{
+  "mcpServers": {
+    "speclinter": {
+      "command": "node",
+      "args": ["/path/to/speclinter-mcp/dist/cli.js", "serve"],
+      "cwd": "/path/to/speclinter-mcp"
+    }
+  }
+}
+```
+
+## Available MCP Tools
+
+### Project Setup
+- `speclinter_init_project` - Initialize SpecLinter in a project with smart defaults
+
+### Codebase Analysis  
+- `speclinter_analyze_codebase_prepare` - Comprehensive codebase analysis for project documentation
+- `speclinter_analyze_codebase_process` - Process AI analysis results and update context files
+
+### Specification Parsing
+- `speclinter_parse_spec_prepare` - Prepare specification for AI analysis
+- `speclinter_parse_spec_process` - Process AI analysis and create structured tasks
+
+### Similarity Detection
+- `speclinter_find_similar_prepare` - Prepare similarity analysis against existing features
+- `speclinter_find_similar_process` - Process AI similarity analysis results
+
+### Task Management
+- `speclinter_get_task_status` - Get current status of feature tasks
+- `speclinter_update_task_status` - Update task status (completed, in-progress, blocked)
+
+### Implementation Validation
+- `speclinter_validate_implementation_prepare` - Scan codebase for feature implementation
+- `speclinter_validate_implementation_process` - Process AI validation analysis results
+
+## Usage Examples
+
+### Initialize Project
+```
+"Initialize SpecLinter in my project"
+```
+
+### Parse Specification
+```
+"Parse this spec: Create a user authentication system with email verification"
+```
+
+### Check Task Status
+```
+"Show me the status of my authentication-system tasks"
+```
+
+### Validate Implementation
+```
+"Validate the implementation of my authentication feature"
+```
+
+## Key Features
+
+- **AI-Leveraged Analysis**: Semantic understanding vs regex patterns
+- **Quality Grading**: A+ to F grading with improvement suggestions  
+- **Task Generation**: Break specs into implementable tasks with dependencies
+- **Gherkin Scenarios**: Generate behavior specifications for validation
+- **Similarity Detection**: AI-powered semantic analysis to prevent duplicate work
+- **Implementation Validation**: AI assessment of code against specifications
+
+## Project Structure
+
+SpecLinter creates this structure when initialized:
+
+```
+your-project/
+├── .speclinter/
+│   ├── config.json            # Configuration
+│   ├── speclinter.db          # SQLite database
+│   ├── cache/                 # Analysis cache
+│   └── context/               # Project context
+│       ├── project.md         # Tech stack, constraints
+│       ├── patterns.md        # Code patterns
+│       └── architecture.md    # Architecture decisions
+└── speclinter-tasks/
+    └── [feature-name]/
+        ├── _active.md         # Live status dashboard
+        ├── task_01_*.md       # Individual task files
+        ├── meta.json          # Feature metadata
+        └── gherkin/           # Test scenarios
+            └── *.feature
+```
+
+## Quality Grading System
+
+- **A+ (95-100)**: Exceptional specification with comprehensive details
+- **A (90-94)**: Excellent specification with clear requirements
+- **B (80-89)**: Good specification with minor improvements needed
+- **C (70-79)**: Adequate specification with several areas for improvement
+- **D (60-69)**: Poor specification requiring significant enhancement
+- **F (0-59)**: Failing specification with major issues
+
+## Installation
+
+```bash
+# Install dependencies and build
+pnpm install && pnpm build
+
+# Alternative: use npm or yarn
+npm install && npm run build
+```
+
+## Requirements
+
+- Node.js 18+
+- TypeScript support
+- SQLite for task management
+
+## Repository
+
+https://github.com/orangebread/speclinter-mcp
+
+## License
+
+MIT

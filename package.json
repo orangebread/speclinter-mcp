@@ -1,7 +1,26 @@
 {
   "name": "speclinter-mcp",
   "version": "0.1.0",
-  "description": "Turn specs into structured tasks with built-in quality gates",
+  "description": "Turn specs into structured tasks with built-in quality gates - MCP server for AI-powered development",
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "ai",
+    "specification",
+    "task-management",
+    "quality-gates",
+    "gherkin",
+    "typescript",
+    "development-tools"
+  ],
+  "homepage": "https://gitmcp.io/orangebread/speclinter-mcp",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/orangebread/speclinter-mcp.git"
+  },
+  "bugs": {
+    "url": "https://github.com/orangebread/speclinter-mcp/issues"
+  },
   "type": "module",
   "main": "dist/index.js",
   "bin": {

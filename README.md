@@ -11,6 +11,8 @@
 
 # SpecLinter MCP
 
+[![GitMCP](https://img.shields.io/endpoint?url=https://gitmcp.io/badge/orangebread/speclinter-mcp)](https://gitmcp.io/orangebread/speclinter-mcp)
+
 Transform specifications into structured tasks with built-in quality gates for AI-powered development.
 
 ## Table of Contents
@@ -82,7 +84,11 @@ pnpm install && pnpm build
 
 ### MCP Integration Setup
 
-SpecLinter works as an MCP (Model Context Protocol) server. Add this to your AI IDE's MCP configuration file:
+SpecLinter works as an MCP (Model Context Protocol) server. You have two options:
+
+#### Option 1: Direct MCP Server (Recommended for Development)
+
+Add this to your AI IDE's MCP configuration file:
 
 ```json
 {
@@ -102,6 +108,31 @@ SpecLinter works as an MCP (Model Context Protocol) server. Add this to your AI 
 - **Windsurf IDE**: Check Windsurf documentation for MCP settings location
 
 > **⚠️ Important**: Replace `/absolute/path/to/speclinter-mcp` with the actual absolute path to your SpecLinter installation.
+
+#### Option 2: GitMCP Integration (Easy Setup)
+
+For quick access to SpecLinter documentation and examples, use GitMCP:
+
+```json
+{
+  "mcpServers": {
+    "speclinter-docs": {
+      "command": "npx",
+      "args": [
+        "mcp-remote",
+        "https://gitmcp.io/orangebread/speclinter-mcp"
+      ]
+    }
+  }
+}
+```
+
+This provides:
+- **📖 Documentation Access**: Browse SpecLinter docs and examples through AI
+- **🔍 Code Search**: Search SpecLinter source code for implementation details
+- **📋 Usage Examples**: Access real-world usage patterns and configurations
+
+> **💡 Note**: GitMCP provides documentation access, not the actual SpecLinter tools. For full functionality, use Option 1.
 
 ### Verification & Testing
 
