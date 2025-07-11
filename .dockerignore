@@ -1,0 +1,109 @@
+# SpecLinter MCP Docker Build Optimization
+# Exclude unnecessary files to reduce build context and image size
+
+# Node.js
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+.pnpm-debug.log*
+
+# Build outputs (will be copied from builder stage)
+dist/
+build/
+*.tsbuildinfo
+
+# Development files
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Git
+.git/
+.gitignore
+.gitattributes
+
+# Testing
+coverage/
+.nyc_output/
+test-results/
+*.lcov
+
+# Logs
+logs/
+*.log
+
+# Runtime data
+pids/
+*.pid
+*.seed
+*.pid.lock
+
+# Documentation (keep essential docs)
+docs/
+*.md
+!README.md
+
+# Example directories (not needed in container)
+.speclinter-example/
+speclinter-tasks-example/
+tasks/
+
+# Scripts (except docker-entrypoint.sh)
+scripts/
+!docker-entrypoint.sh
+
+# Docker files (avoid recursion)
+Dockerfile*
+docker-compose*.yml
+.dockerignore
+
+# CI/CD
+.github/
+.gitlab-ci.yml
+.travis.yml
+.circleci/
+
+# Package manager files (keep package.json and lock files)
+.pnpm-store/
+.yarn/
+.npm/
+# Keep lock files for reproducible builds
+!pnpm-lock.yaml
+!package-lock.json
+!yarn.lock
+
+# Temporary files
+tmp/
+temp/
+.tmp/
+
+# Cache directories
+.cache/
+.parcel-cache/
+.next/
+.nuxt/
+.vuepress/dist/
+
+# Misc
+*.tgz
+*.tar.gz

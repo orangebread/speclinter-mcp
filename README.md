@@ -27,30 +27,32 @@ Transform natural language specifications into actionable development tasks with
 
 ## 🎯 Quick Start (5 Minutes)
 
-### 1. Install & Build
+### � Installation & Setup
 ```bash
+git clone https://github.com/orangebread/speclinter-mcp.git
+cd speclinter-mcp
 pnpm install && pnpm build
 ```
 
-### 2. Connect to Your AI IDE
-Add to your MCP configuration:
+### 🔌 MCP Configuration
+Add this to your AI IDE's MCP configuration:
 ```json
 {
   "mcpServers": {
     "speclinter": {
       "command": "node",
-      "args": ["/path/to/speclinter-mcp/dist/cli.js", "serve"]
+      "args": ["/absolute/path/to/speclinter-mcp/dist/cli.js", "serve"]
     }
   }
 }
 ```
 
-### 3. Try It Out
+### � Try It Out
 Ask your AI: `"Initialize SpecLinter and parse this spec: Create a user login form with email validation"`
 
 ## 📋 Table of Contents
 
-- [Core Workflows](#core-workflows) • [Setup Guide](#setup-guide) • [Quality System](#quality-system) • [Advanced Features](#advanced-features)
+- [Core Workflows](#-core-workflows) • [Setup Guide](#-setup-guide) • [Quality System](#-quality-system) • [Advanced Features](#-advanced-features)
 
 ## 🎯 Core Workflows
 
@@ -129,6 +131,33 @@ node dist/cli.js serve
 "Initialize SpecLinter in my project"
 "Parse this spec: Create a user login form"
 ```
+
+## 🐳 Docker Alternative
+
+**One command setup:**
+```bash
+git clone https://github.com/orangebread/speclinter-mcp.git && cd speclinter-mcp && docker build -t speclinter/mcp . && docker run -it --rm -v $(pwd):/workspace speclinter/mcp
+```
+
+This will:
+- Clone the repo
+- Build the Docker image
+- Start SpecLinter (terminal will stay open for MCP connection)
+- Mount your current directory so data persists
+
+**MCP Configuration for Docker:**
+```json
+{
+  "mcpServers": {
+    "speclinter": {
+      "command": "docker",
+      "args": ["run", "--rm", "-i", "-v", "$(pwd):/workspace", "speclinter/mcp", "serve"]
+    }
+  }
+}
+```
+
+
 
 ## 📊 Quality System
 
@@ -294,8 +323,13 @@ SpecLinter can detect similar features across multiple repositories and microser
 ## 🔧 Development & Contributing
 
 ```bash
-git clone <repository-url>
+git clone https://github.com/orangebread/speclinter-mcp.git
 cd speclinter-mcp
+
+# Build Docker image
+docker build -t speclinter/mcp:latest .
+
+# Or traditional development
 pnpm install && pnpm build
 
 # Available scripts

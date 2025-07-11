@@ -19,6 +19,13 @@ program
   });
 
 program
+  .command('init')
+  .description('Initialize SpecLinter in the current directory')
+  .action(async () => {
+    await initializeSpecLinter();
+  });
+
+program
   .command('validate <feature>')
   .description('Validate implementation of a specific feature using AI analysis')
   .action(async (feature) => {
@@ -31,6 +38,34 @@ program
   .action(async (feature) => {
     await showFeatureStatus(feature);
   });
+
+async function initializeSpecLinter(): Promise<void> {
+  const spinner = ora('Initializing SpecLinter...').start();
+
+  try {
+    const { handleInitProject } = await import('./tools.js');
+
+    // Initialize SpecLinter in current directory
+    const result = await handleInitProject({
+      project_root: process.cwd()
+    });
+
+    spinner.succeed('SpecLinter initialized successfully!');
+
+    console.log(chalk.green('\n🎉 SpecLinter is ready to use!'));
+    console.log(chalk.blue('📁 Created directories:'));
+    console.log(chalk.gray('  • .speclinter/ - Configuration and context'));
+    console.log(chalk.gray('  • speclinter-tasks/ - Feature tasks and specifications'));
+    console.log(chalk.blue('\n🚀 Next steps:'));
+    console.log(chalk.yellow('  1. Connect to your AI IDE using MCP configuration'));
+    console.log(chalk.yellow('  2. Try: "Initialize SpecLinter and parse this spec: Create a user login form"'));
+
+  } catch (error) {
+    spinner.fail('Failed to initialize SpecLinter');
+    console.error(chalk.red(error instanceof Error ? error.message : 'Unknown error'));
+    process.exit(1);
+  }
+}
 
 async function validateFeatureImplementation(feature: string): Promise<void> {
   const spinner = ora(`Validating implementation for ${feature}...`).start();
