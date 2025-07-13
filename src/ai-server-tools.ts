@@ -18,6 +18,7 @@ import {
   handleAnalyzeSpecComprehensive,
   handleProcessComprehensiveSpecAnalysis
 } from './ai-tools.js';
+import { generateCodebaseAnalysisExample, generateMinimalExample, getSchemaDocumentation } from './utils/schema-examples.js';
 
 /**
  * Helper function to wrap tool results in MCP content format
@@ -51,6 +52,57 @@ async function handleToolExecution(toolHandler: (args: any) => Promise<any>, arg
  * These tools follow the two-step pattern: collect data + return AI prompts, then process AI results
  */
 export function registerAITools(server: McpServer) {
+  // Schema documentation and examples
+  server.registerTool(
+    'speclinter_get_schema_help',
+    {
+      title: 'Get Schema Documentation',
+      description: 'Get detailed schema documentation and examples for SpecLinter AI analysis tools',
+      inputSchema: {
+        schema_name: z.enum(['AICodebaseAnalysisWithContextSchema', 'AISpecAnalysisSchema', 'AIGherkinAnalysisSchema']).optional().describe('Specific schema to get help for'),
+        include_example: z.boolean().optional().default(true).describe('Include a complete example'),
+        example_type: z.enum(['complete', 'minimal']).optional().default('complete').describe('Type of example to include')
+      }
+    },
+    async (args) => {
+      const { schema_name, include_example = true, example_type = 'complete' } = args;
+
+      if (schema_name) {
+        const documentation = getSchemaDocumentation(schema_name);
+        const result: any = { schema_name, documentation };
+
+        if (include_example && schema_name === 'AICodebaseAnalysisWithContextSchema') {
+          result.example = example_type === 'minimal'
+            ? generateMinimalExample()
+            : generateCodebaseAnalysisExample();
+        }
+
+        return wrapMcpResponse(result);
+      }
+
+      // Return overview of all schemas
+      return wrapMcpResponse({
+        available_schemas: [
+          {
+            name: 'AICodebaseAnalysisWithContextSchema',
+            description: 'Combined codebase analysis and context files generation',
+            used_by: ['speclinter_analyze_codebase_process']
+          },
+          {
+            name: 'AISpecAnalysisSchema',
+            description: 'Specification analysis with quality assessment and task extraction',
+            used_by: ['speclinter_parse_spec_process']
+          },
+          {
+            name: 'AIGherkinAnalysisSchema',
+            description: 'Gherkin scenario generation with quality metrics',
+            used_by: ['speclinter_generate_gherkin_process']
+          }
+        ],
+        usage: 'Call this tool with schema_name parameter to get detailed documentation and examples'
+      });
+    }
+  );
   // Comprehensive codebase analysis
   server.registerTool(
     'speclinter_analyze_codebase_prepare',
@@ -72,10 +124,62 @@ export function registerAITools(server: McpServer) {
     'speclinter_analyze_codebase_process',
     {
       title: 'Process Codebase Analysis',
-      description: 'Process comprehensive codebase analysis results and update SpecLinter context files',
+      description: `Process comprehensive codebase analysis results and update SpecLinter context files.
+
+REQUIRED SCHEMA: AICodebaseAnalysisWithContextSchema
+The analysis parameter must contain:
+{
+  "analysis": {
+    "techStack": {
+      "frontend": "string (optional)",
+      "backend": "string (optional)",
+      "database": "string (optional)",
+      "testing": "string (optional)",
+      "buildTool": "string (optional)",
+      "packageManager": "string (optional)",
+      "language": "string (optional)",
+      "confidence": "number (0-1)"
+    },
+    "errorPatterns": [{"name": "string", "description": "string", "example": "string", "confidence": "number (0-1)", "locations": [{"file": "string", "lineStart": "number?", "lineEnd": "number?"}]}],
+    "apiPatterns": [/* same structure as errorPatterns */],
+    "testPatterns": [/* same structure as errorPatterns */],
+    "namingConventions": {
+      "fileNaming": "string",
+      "variableNaming": "string",
+      "functionNaming": "string",
+      "classNaming": "string (optional)",
+      "constantNaming": "string (optional)",
+      "examples": [{"type": "file|variable|function|class|constant", "example": "string", "convention": "string"}]
+    },
+    "projectStructure": {
+      "srcDir": "string",
+      "testDir": "string",
+      "configFiles": ["string"],
+      "entryPoints": ["string"],
+      "architecture": "monolith|microservices|modular|layered|unknown",
+      "organizationPattern": "string"
+    },
+    "codeQuality": {
+      "overallScore": "number (0-100)",
+      "maintainability": "number (0-100)",
+      "testCoverage": "number (0-100, optional)",
+      "documentation": "number (0-100)",
+      "issues": [{"type": "string", "severity": "low|medium|high|critical", "description": "string", "file": "string?", "suggestion": "string?"}]
+    },
+    "insights": ["string"],
+    "recommendations": ["string"]
+  },
+  "contextFiles": {
+    "projectMd": "string (complete markdown content)",
+    "patternsMd": "string (complete markdown content)",
+    "architectureMd": "string (complete markdown content)"
+  }
+}
+
+ALTERNATIVE: You can provide separate analysis and contextFiles parameters instead of the combined format.`,
       inputSchema: {
-        analysis: z.object({}).passthrough().describe('AI analysis results matching AICodebaseAnalysisWithContextSchema'),
-        contextFiles: z.object({}).passthrough().optional().describe('AI-generated context files'),
+        analysis: z.object({}).passthrough().describe('AI analysis results matching AICodebaseAnalysisWithContextSchema (see description for complete structure)'),
+        contextFiles: z.object({}).passthrough().optional().describe('AI-generated context files with projectMd, patternsMd, architectureMd fields'),
         project_root: z.string().optional().describe('Root directory of the project (defaults to auto-detected project root)')
       }
     },
@@ -103,9 +207,32 @@ export function registerAITools(server: McpServer) {
     'speclinter_parse_spec_process',
     {
       title: 'Process AI Specification Analysis',
-      description: 'Process AI specification analysis results and create SpecLinter tasks',
+      description: `Process AI specification analysis results and create SpecLinter tasks.
+
+REQUIRED SCHEMA: AISpecAnalysisSchema
+The analysis parameter must contain:
+{
+  "quality": {
+    "score": "number (0-100)",
+    "grade": "A+|A|B|C|D|F",
+    "issues": [{"type": "string", "severity": "low|medium|high|critical", "message": "string", "suggestion": "string", "points": "number"}],
+    "strengths": ["string"],
+    "improvements": ["string"]
+  },
+  "tasks": [{"title": "string", "summary": "string", "implementation": "string", "acceptanceCriteria": ["string"], "estimatedEffort": "XS|S|M|L|XL", "dependencies": ["string"], "tags": ["string"], "priority": "low|medium|high|critical"}],
+  "technicalConsiderations": ["string"],
+  "userStories": ["string"],
+  "businessValue": "string",
+  "scope": {
+    "inScope": ["string"],
+    "outOfScope": ["string"],
+    "assumptions": ["string"]
+  }
+}
+
+TIP: Use speclinter_get_schema_help with schema_name="AISpecAnalysisSchema" for detailed examples.`,
       inputSchema: {
-        analysis: z.object({}).passthrough().describe('AI analysis results matching AISpecAnalysisSchema'),
+        analysis: z.object({}).passthrough().describe('AI analysis results matching AISpecAnalysisSchema (see description for structure)'),
         feature_name: z.string().describe('Name for the feature'),
         original_spec: z.string().optional().describe('Original specification text'),
         project_root: z.string().optional().describe('Root directory of the project'),

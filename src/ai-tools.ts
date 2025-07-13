@@ -456,19 +456,54 @@ export async function handleProcessCodebaseAnalysis(args: any) {
     let validatedAnalysis: any;
     let validatedContextFiles: any;
 
-    if (contextFiles) {
-      // Case 1: Separate analysis and contextFiles provided
-      validatedAnalysis = AICodebaseAnalysisSchema.parse(analysis);
-      validatedContextFiles = AIContextFilesSchema.parse(contextFiles);
-    } else if (analysis.analysis && analysis.contextFiles) {
-      // Case 2: Combined schema (AICodebaseAnalysisWithContextSchema)
-      const combined = AICodebaseAnalysisWithContextSchema.parse(analysis);
-      validatedAnalysis = combined.analysis;
-      validatedContextFiles = combined.contextFiles;
-    } else {
-      // Case 3: Analysis-only - generate basic contextFiles from analysis
-      validatedAnalysis = AICodebaseAnalysisSchema.parse(analysis);
-      validatedContextFiles = generateContextFilesFromAnalysis(validatedAnalysis);
+    try {
+      if (contextFiles) {
+        // Case 1: Separate analysis and contextFiles provided
+        validatedAnalysis = AICodebaseAnalysisSchema.parse(analysis);
+        validatedContextFiles = AIContextFilesSchema.parse(contextFiles);
+      } else if (analysis.analysis && analysis.contextFiles) {
+        // Case 2: Combined schema (AICodebaseAnalysisWithContextSchema)
+        const combined = AICodebaseAnalysisWithContextSchema.parse(analysis);
+        validatedAnalysis = combined.analysis;
+        validatedContextFiles = combined.contextFiles;
+      } else {
+        // Case 3: Analysis-only - generate basic contextFiles from analysis
+        validatedAnalysis = AICodebaseAnalysisSchema.parse(analysis);
+        validatedContextFiles = generateContextFilesFromAnalysis(validatedAnalysis);
+      }
+    } catch (validationError) {
+      if (validationError instanceof Error && validationError.name === 'ZodError') {
+        return {
+          success: false,
+          error: 'AI analysis response does not match expected schema',
+          validation_errors: validationError.message,
+          schema_help: {
+            expected_format: 'AICodebaseAnalysisWithContextSchema',
+            required_fields: {
+              analysis: {
+                techStack: 'Object with frontend, backend, database, testing, buildTool, packageManager, language, confidence fields',
+                errorPatterns: 'Array of pattern objects with name, description, example, confidence, locations',
+                apiPatterns: 'Array of pattern objects (same structure as errorPatterns)',
+                testPatterns: 'Array of pattern objects (same structure as errorPatterns)',
+                namingConventions: 'Object with fileNaming, variableNaming, functionNaming, examples fields',
+                projectStructure: 'Object with srcDir, testDir, configFiles, entryPoints, architecture, organizationPattern',
+                codeQuality: 'Object with overallScore, maintainability, testCoverage, documentation, issues',
+                insights: 'Array of strings',
+                recommendations: 'Array of strings'
+              },
+              contextFiles: {
+                projectMd: 'Complete markdown content for project.md',
+                patternsMd: 'Complete markdown content for patterns.md',
+                architectureMd: 'Complete markdown content for architecture.md'
+              }
+            },
+            alternative_format: 'You can provide analysis and contextFiles as separate parameters instead of combined',
+            get_example: 'Use speclinter_get_schema_help tool with schema_name="AICodebaseAnalysisWithContextSchema" for complete examples'
+          },
+          project_root: rootDir
+        };
+      }
+      throw validationError;
     }
 
     // Update context files with AI-generated content
@@ -505,15 +540,6 @@ export async function handleProcessCodebaseAnalysis(args: any) {
       ]
     };
   } catch (error) {
-    if (error instanceof Error && error.name === 'ZodError') {
-      return {
-        success: false,
-        error: 'AI analysis response does not match expected schema',
-        validation_errors: error.message,
-        project_root: rootDir
-      };
-    }
-    
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Unknown error occurred',
