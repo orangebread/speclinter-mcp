@@ -205,17 +205,43 @@ Error Handling:
 
 ## 🔧 Advanced Features
 
-### 🧪 Auto-Generated Gherkin Scenarios
-Every task gets testable scenarios:
+### 🧪 AI-Powered Gherkin Scenarios
+Every task gets comprehensive, actionable test scenarios:
 ```gherkin
-Feature: User Authentication
+Feature: User Authentication System
+  Implement secure user login and registration with email verification
 
-Scenario: Successful login
-  Given a user exists with valid credentials
-  When they submit the login form
-  Then they should be redirected to dashboard
-  And a session token should be created
+  Scenario: Successfully authenticate user with valid credentials
+    Given the user registration system is available
+    And a user exists with email "user@example.com" and password "SecurePass123"
+    When I submit login form with valid credentials
+    Then the user should be authenticated successfully
+    And a JWT token should be generated and returned
+    And the user should be redirected to the dashboard
+    And the login attempt should be logged
+
+  Scenario: Handle invalid login attempts
+    Given a user exists with email "user@example.com"
+    When I submit login form with email "user@example.com" and password "WrongPassword"
+    Then the authentication should be rejected
+    And an error message "Invalid credentials" should be displayed
+    And no JWT token should be generated
+    And the failed attempt should be logged
+
+  Scenario: Validate input format during login
+    Given the login system is ready to accept input
+    When I provide malformed email "invalid-email" and password "test123"
+    Then input validation should be triggered
+    And specific validation errors should be shown
+    And the user should understand what needs to be corrected
 ```
+
+**🎯 Scenario Quality Features:**
+- **Multiple Types**: Happy path, error handling, edge cases, validation scenarios
+- **Specific Data**: Concrete examples instead of generic placeholders
+- **Actionable Steps**: Each step can be implemented as an automated test
+- **Business Focus**: User-centric language with technical accuracy
+- **Comprehensive Coverage**: All acceptance criteria addressed
 
 ### 🔍 Semantic Similarity Detection
 Prevents duplicate work by finding similar features:

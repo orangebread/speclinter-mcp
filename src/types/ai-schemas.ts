@@ -87,15 +87,19 @@ export const AISpecQualitySchema = z.object({
 });
 
 export const AITaskSchema = z.object({
-  title: z.string().describe('Clear, actionable task title'),
-  summary: z.string().describe('Brief summary of what needs to be done'),
-  implementation: z.string().describe('Detailed implementation guidance'),
-  acceptanceCriteria: z.array(z.string()).describe('Specific acceptance criteria'),
-  estimatedEffort: z.enum(['XS', 'S', 'M', 'L', 'XL']).describe('Estimated effort/complexity'),
-  dependencies: z.array(z.string()).describe('Other tasks this depends on'),
-  testingNotes: z.string().describe('Testing considerations and approach'),
-  relevantPatterns: z.array(z.string()).describe('Code patterns that apply to this task'),
-  riskFactors: z.array(z.string()).describe('Potential risks or challenges')
+  title: z.string().describe('Clear, actionable task title using specific verbs and concrete outcomes'),
+  summary: z.string().describe('Brief summary focusing on user value and specific functionality'),
+  implementation: z.string().describe('Detailed implementation guidance with technology-specific steps, file locations, and code patterns'),
+  acceptanceCriteria: z.array(z.string()).describe('Specific, measurable, testable acceptance criteria with concrete validation points'),
+  estimatedEffort: z.enum(['XS', 'S', 'M', 'L', 'XL']).describe('Estimated effort/complexity based on implementation scope'),
+  dependencies: z.array(z.string()).describe('Other tasks this depends on with specific reasons'),
+  testingNotes: z.string().describe('Comprehensive testing approach including unit, integration, and edge case considerations'),
+  relevantPatterns: z.array(z.string()).describe('Specific code patterns from project context that apply to this task'),
+  riskFactors: z.array(z.string()).describe('Technical risks, integration challenges, and mitigation strategies'),
+  securityConsiderations: z.array(z.string()).describe('Security aspects including validation, authentication, and data protection'),
+  performanceConsiderations: z.array(z.string()).describe('Performance implications, optimization opportunities, and scalability factors'),
+  userExperience: z.string().describe('How this task impacts user experience and interaction patterns'),
+  technicalDebt: z.array(z.string()).describe('Potential technical debt and long-term maintenance considerations')
 });
 
 export const AISpecAnalysisSchema = z.object({
@@ -281,13 +285,18 @@ Consider system design for scale:
    - Note strengths like clear user stories, well-defined constraints
    - Suggest specific improvements with actionable recommendations
 
-2. **Task Breakdown**: Extract clear, actionable tasks with implementation guidance
-   - Create 5-10 specific, implementable tasks
+2. **Task Breakdown**: Extract clear, actionable tasks with comprehensive implementation guidance
+   - Create 5-10 specific, implementable tasks with concrete deliverables
    - Each task should be completable in 1-4 hours by a developer
-   - REQUIRED: Include detailed implementation guidance using project's tech stack
-   - REQUIRED: Reference relevant code patterns from project context
-   - Provide clear acceptance criteria for each task
-   - Estimate effort level (XS, S, M, L, XL)
+   - REQUIRED: Include detailed implementation guidance with specific file paths, function names, and code structure
+   - REQUIRED: Reference relevant code patterns from project context with examples
+   - REQUIRED: Provide measurable, testable acceptance criteria with specific validation points
+   - REQUIRED: Include security considerations (input validation, authentication, authorization)
+   - REQUIRED: Include performance considerations (response times, scalability, optimization)
+   - REQUIRED: Describe user experience impact and interaction patterns
+   - REQUIRED: Identify potential technical debt and maintenance considerations
+   - Estimate effort level (XS, S, M, L, XL) based on implementation complexity
+   - Include comprehensive testing approach (unit, integration, edge cases)
 
 3. **Technical Considerations**: Identify technical constraints and requirements
    - Performance requirements and scalability needs
@@ -359,8 +368,142 @@ Return a JSON response matching the AISimilarityAnalysisSchema. Focus on semanti
 - No generic placeholders like [Framework/Library/etc]
 - Professional tone suitable for development teams
 
-Return JSON matching AIContextFilesSchema with complete file contents.`
+Return JSON matching AIContextFilesSchema with complete file contents.`,
+
+  gherkinGeneration: `# AI Gherkin Scenario Generation
+
+You are an expert test analyst and Gherkin scenario writer. Your task is to generate comprehensive, actionable Gherkin scenarios for a specific development task.
+
+## Task Context
+**Task Title**: {taskTitle}
+**Task Summary**: {taskSummary}
+**Implementation Details**: {implementation}
+
+## Acceptance Criteria
+{acceptanceCriteria}
+
+## Project Context
+**Tech Stack**: {techStack}
+**Testing Framework**: {testFramework}
+**Code Patterns**: {codePatterns}
+**Project Structure**: {projectStructure}
+
+## Requirements for Gherkin Scenarios
+
+### 1. Scenario Quality Standards
+- **Specific**: Use concrete examples, not generic placeholders
+- **Actionable**: Each step should be implementable as an automated test
+- **Measurable**: Include specific assertions and validation points
+- **Business-focused**: Write from user/system perspective, not implementation details
+
+### 2. Required Scenario Types
+Generate scenarios covering:
+- **Happy Path**: Primary success scenarios with valid inputs
+- **Error Handling**: Invalid inputs, system errors, edge cases
+- **Edge Cases**: Boundary conditions, unusual but valid scenarios
+- **Integration**: How this feature interacts with other system components
+- **Security**: Authentication, authorization, data validation (if applicable)
+- **Performance**: Response times, load handling (if applicable)
+
+### 3. Step Writing Guidelines
+- **Given**: Set up preconditions with specific data
+- **When**: Describe user actions or system events
+- **Then**: Assert specific, measurable outcomes
+- **Use concrete data**: "user@example.com" not "a valid email"
+- **Avoid implementation details**: Focus on behavior, not code
+
+### 4. Technical Considerations
+- Align with project's testing framework: {testFramework}
+- Consider project architecture: {projectStructure}
+- Include setup/teardown considerations
+- Account for external dependencies and mocking needs
+
+## Example Quality Transformation
+
+❌ **Generic (Current)**:
+\`\`\`gherkin
+Scenario: Create user - Happy Path
+  Given the system is ready
+  When Create user functionality is implemented
+  Then the acceptance criteria are met
+\`\`\`
+
+✅ **Specific (Target)**:
+\`\`\`gherkin
+Scenario: Successfully create user with valid data
+  Given the user registration system is available
+  And no user exists with email "newuser@example.com"
+  When I submit user registration with:
+    | email    | newuser@example.com |
+    | password | SecurePass123!      |
+    | name     | John Doe            |
+  Then a new user account should be created
+  And the user should receive a confirmation email
+  And the response should include a user ID
+  And the password should be securely hashed in the database
+\`\`\`
+
+Please generate comprehensive Gherkin scenarios following these guidelines and return a JSON response matching the AIGherkinAnalysisSchema.`
 };
+
+// AI Gherkin Generation Schemas
+export const AIGherkinStepSchema = z.object({
+  type: z.enum(['given', 'when', 'then', 'and', 'but']).describe('Step type'),
+  text: z.string().describe('Step text with specific, actionable language'),
+  parameters: z.array(z.object({
+    name: z.string(),
+    value: z.string(),
+    type: z.enum(['string', 'number', 'boolean', 'object']).optional()
+  })).optional().describe('Parameterized values for data-driven testing')
+});
+
+export const AIGherkinScenarioSchema = z.object({
+  type: z.enum(['happy_path', 'error_handling', 'edge_case', 'integration', 'security', 'performance', 'validation']).describe('Scenario category'),
+  title: z.string().describe('Specific, testable scenario title'),
+  description: z.string().optional().describe('Additional context for the scenario'),
+  tags: z.array(z.string()).optional().describe('Tags for scenario organization (@smoke, @regression, etc.)'),
+  steps: z.array(AIGherkinStepSchema).describe('Scenario steps with specific actions and assertions'),
+  examples: z.array(z.object({
+    description: z.string(),
+    data: z.record(z.string())
+  })).optional().describe('Scenario outline examples for data-driven testing'),
+  priority: z.enum(['critical', 'high', 'medium', 'low']).describe('Testing priority level'),
+  estimatedDuration: z.string().optional().describe('Estimated test execution time')
+});
+
+export const AIGherkinFeatureSchema = z.object({
+  title: z.string().describe('Feature title matching the task'),
+  description: z.string().describe('Feature description with business context'),
+  background: z.array(AIGherkinStepSchema).optional().describe('Common setup steps for all scenarios'),
+  scenarios: z.array(AIGherkinScenarioSchema).describe('Generated test scenarios'),
+  rules: z.array(z.object({
+    title: z.string(),
+    scenarios: z.array(AIGherkinScenarioSchema)
+  })).optional().describe('Business rules with associated scenarios'),
+  testingNotes: z.string().describe('Additional testing considerations and setup requirements'),
+  coverageAreas: z.array(z.string()).describe('Areas of functionality covered by these scenarios')
+});
+
+export const AIGherkinAnalysisSchema = z.object({
+  feature: AIGherkinFeatureSchema,
+  qualityMetrics: z.object({
+    scenarioCount: z.number().describe('Total number of scenarios generated'),
+    coverageScore: z.number().min(0).max(100).describe('Estimated coverage of acceptance criteria'),
+    actionabilityScore: z.number().min(0).max(100).describe('How actionable and specific the scenarios are'),
+    maintainabilityScore: z.number().min(0).max(100).describe('How maintainable the scenarios are')
+  }),
+  technicalConsiderations: z.array(z.string()).describe('Technical aspects to consider during testing'),
+  automationReadiness: z.object({
+    score: z.number().min(0).max(100).describe('How ready scenarios are for test automation'),
+    blockers: z.array(z.string()).describe('Potential automation blockers'),
+    recommendations: z.array(z.string()).describe('Recommendations for test automation')
+  }),
+  aiInsights: z.object({
+    confidence: z.number().min(0).max(1).describe('AI confidence in scenario quality'),
+    improvements: z.array(z.string()).describe('Suggested improvements for scenarios'),
+    patterns: z.array(z.string()).describe('Testing patterns applied')
+  })
+});
 
 // Type exports
 export type AICodePattern = z.infer<typeof AICodePatternSchema>;
@@ -373,4 +516,8 @@ export type AITask = z.infer<typeof AITaskSchema>;
 export type AISpecAnalysis = z.infer<typeof AISpecAnalysisSchema>;
 export type AISimilarityAnalysis = z.infer<typeof AISimilarityAnalysisSchema>;
 export type AIContextFiles = z.infer<typeof AIContextFilesSchema>;
+export type AIGherkinStep = z.infer<typeof AIGherkinStepSchema>;
+export type AIGherkinScenario = z.infer<typeof AIGherkinScenarioSchema>;
+export type AIGherkinFeature = z.infer<typeof AIGherkinFeatureSchema>;
+export type AIGherkinAnalysis = z.infer<typeof AIGherkinAnalysisSchema>;
 export type AICodebaseAnalysisWithContext = z.infer<typeof AICodebaseAnalysisWithContextSchema>;

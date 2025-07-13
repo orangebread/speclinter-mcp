@@ -19,7 +19,18 @@ export const ConfigSchema = z.object({
     tasksPerFeature: z.number(),
     includePatterns: z.boolean(),
     testFramework: z.string(),
-    gherkinStyle: z.enum(['declarative', 'imperative'])
+    gherkinStyle: z.enum(['declarative', 'imperative']),
+    gherkinQuality: z.object({
+      useAIGeneration: z.boolean(),
+      scenarioComplexity: z.enum(['basic', 'standard', 'comprehensive']),
+      includeEdgeCases: z.boolean(),
+      includeSecurityScenarios: z.boolean(),
+      includePerformanceScenarios: z.boolean(),
+      minScenarioCount: z.number(),
+      maxScenarioCount: z.number(),
+      requireDataTables: z.boolean(),
+      requireBackground: z.boolean()
+    })
   }),
   storage: z.object({
     tasksDir: z.string(),
@@ -61,7 +72,18 @@ export const DEFAULT_CONFIG: Config = {
     tasksPerFeature: 10,
     includePatterns: true,
     testFramework: "vitest",
-    gherkinStyle: "declarative"
+    gherkinStyle: "declarative",
+    gherkinQuality: {
+      useAIGeneration: true,
+      scenarioComplexity: "standard",
+      includeEdgeCases: true,
+      includeSecurityScenarios: true,
+      includePerformanceScenarios: false,
+      minScenarioCount: 3,
+      maxScenarioCount: 8,
+      requireDataTables: false,
+      requireBackground: false
+    }
   },
   storage: {
     tasksDir: "./speclinter-tasks",

@@ -8,7 +8,9 @@ import {
   handleFindSimilarAI,
   handleProcessSimilarityAnalysisAI,
   handleValidateImplementationPrepare,
-  handleValidateImplementationProcess
+  handleValidateImplementationProcess,
+  handleGenerateGherkinPrepare,
+  handleProcessGherkinAnalysis
 } from './ai-tools.js';
 
 /**
@@ -166,6 +168,37 @@ export function registerAITools(server: McpServer) {
       }
     },
     async (args) => handleToolExecution(handleValidateImplementationProcess, args)
+  );
+
+  // AI-leveraged Gherkin generation (Step 1)
+  server.registerTool(
+    'speclinter_generate_gherkin_prepare',
+    {
+      title: 'Prepare AI Gherkin Generation',
+      description: 'Prepare AI-powered Gherkin scenario generation for a specific task',
+      inputSchema: {
+        task: z.object({}).passthrough().describe('Task object with title, summary, implementation, and acceptance criteria'),
+        feature_name: z.string().describe('Name of the feature this task belongs to'),
+        project_root: z.string().optional().describe('Root directory of the project (defaults to auto-detected project root)')
+      }
+    },
+    async (args) => handleToolExecution(handleGenerateGherkinPrepare, args)
+  );
+
+  // Process AI Gherkin analysis results (Step 2)
+  server.registerTool(
+    'speclinter_generate_gherkin_process',
+    {
+      title: 'Process AI Gherkin Analysis',
+      description: 'Process AI Gherkin analysis results and generate comprehensive scenario files',
+      inputSchema: {
+        analysis: z.object({}).passthrough().describe('AI Gherkin analysis results matching AIGherkinAnalysisSchema'),
+        task_id: z.string().describe('ID of the task being processed'),
+        feature_name: z.string().describe('Name of the feature'),
+        project_root: z.string().optional().describe('Root directory of the project')
+      }
+    },
+    async (args) => handleToolExecution(handleProcessGherkinAnalysis, args)
   );
 }
 

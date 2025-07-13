@@ -9,6 +9,7 @@ import {
   AIContextFilesSchema,
   AICodebaseAnalysisWithContextSchema,
   AIFeatureValidationSchema,
+  AIGherkinAnalysisSchema,
   AIPromptTemplates
 } from './types/ai-schemas.js';
 import { resolveProjectRoot } from './tools.js';
@@ -1476,6 +1477,226 @@ function generateValidationSummary(validation: any): any {
                            'Feature needs minor improvements' :
                            'Feature requires significant work'
   };
+}
+
+/**
+ * Step 1: Prepare AI Gherkin scenario generation
+ */
+export async function handleGenerateGherkinPrepare(args: any) {
+  const {
+    task,
+    feature_name,
+    project_root
+  } = args;
+
+  if (!task || !feature_name) {
+    return {
+      success: false,
+      error: 'Task and feature_name are required'
+    };
+  }
+
+  const rootDir = await resolveProjectRoot(project_root);
+
+  try {
+    // Load project context
+    const projectContext = await loadProjectContextFromFiles(rootDir);
+
+    // Get configuration for testing framework
+    const storage = await StorageManager.createInitializedStorage(rootDir);
+    const config = await storage.getConfig();
+
+    // Format acceptance criteria for prompt
+    const acceptanceCriteriaText = Array.isArray(task.acceptanceCriteria)
+      ? task.acceptanceCriteria.map((criteria: string, index: number) => `${index + 1}. ${criteria}`).join('\n')
+      : 'No specific acceptance criteria provided';
+
+    // Format tech stack information
+    const techStackText = projectContext.techStack
+      ? `Primary: ${projectContext.techStack.primary || 'Unknown'}, Framework: ${projectContext.techStack.framework || 'Unknown'}`
+      : 'Tech stack not detected';
+
+    // Format code patterns
+    const codePatternsText = projectContext.patterns && projectContext.patterns.length > 0
+      ? projectContext.patterns.map((p: any) => `- ${p.name}: ${p.description}`).join('\n')
+      : 'No specific code patterns detected';
+
+    // Generate comprehensive AI prompt
+    const gherkinPrompt = AIPromptTemplates.gherkinGeneration
+      .replace('{taskTitle}', task.title || 'Unknown Task')
+      .replace('{taskSummary}', task.summary || 'No summary provided')
+      .replace('{implementation}', task.implementation || 'No implementation details provided')
+      .replace('{acceptanceCriteria}', acceptanceCriteriaText)
+      .replace('{techStack}', techStackText)
+      .replace('{testFramework}', config.generation.testFramework || 'vitest')
+      .replace('{codePatterns}', codePatternsText)
+      .replace('{projectStructure}', projectContext.projectStructure?.architecture || 'Unknown architecture');
+
+    return {
+      success: true,
+      action: 'ai_analysis_required',
+      task_id: task.id,
+      feature_name,
+      project_root: rootDir,
+      analysis_prompt: gherkinPrompt,
+      follow_up_tool: 'process_gherkin_analysis',
+      schema: 'AIGherkinAnalysisSchema',
+      project_context: projectContext,
+      next_steps: [
+        'AI will generate comprehensive Gherkin scenarios',
+        'Scenarios will be validated and formatted',
+        'Generated scenarios will replace generic templates'
+      ]
+    };
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error occurred',
+      project_root: rootDir
+    };
+  }
+}
+
+/**
+ * Step 2: Process AI Gherkin analysis and generate scenario files
+ */
+export async function handleProcessGherkinAnalysis(args: any) {
+  const {
+    analysis,
+    task_id,
+    feature_name,
+    project_root
+  } = args;
+
+  if (!analysis || !task_id || !feature_name) {
+    return {
+      success: false,
+      error: 'Analysis, task_id, and feature_name are required'
+    };
+  }
+
+  const rootDir = await resolveProjectRoot(project_root);
+
+  try {
+    // Validate AI analysis against schema
+    const validatedAnalysis = AIGherkinAnalysisSchema.parse(analysis);
+
+    // Generate Gherkin content from validated analysis
+    const gherkinContent = formatGherkinFromAnalysis(validatedAnalysis);
+
+    // Get storage and config
+    const storage = await StorageManager.createInitializedStorage(rootDir);
+    const config = await storage.getConfig();
+
+    // Determine file path
+    const tasksDir = path.join(rootDir, config.storage.tasksDir);
+    const featureDir = path.join(tasksDir, feature_name);
+    const gherkinDir = path.join(featureDir, 'gherkin');
+
+    // Ensure gherkin directory exists
+    await fs.mkdir(gherkinDir, { recursive: true });
+
+    // Generate filename from task
+    const filename = `${task_id.replace('task_', '')}_${validatedAnalysis.feature.title.toLowerCase().replace(/\s+/g, '_')}.feature`;
+    const filePath = path.join(gherkinDir, filename);
+
+    // Write the generated Gherkin file
+    await fs.writeFile(filePath, gherkinContent);
+
+    return {
+      success: true,
+      task_id,
+      feature_name,
+      project_root: rootDir,
+      gherkin_file: filePath,
+      scenario_count: validatedAnalysis.feature.scenarios.length,
+      quality_metrics: validatedAnalysis.qualityMetrics,
+      automation_readiness: validatedAnalysis.automationReadiness,
+      ai_confidence: validatedAnalysis.aiInsights.confidence,
+      next_steps: [
+        `Generated ${validatedAnalysis.feature.scenarios.length} specific scenarios`,
+        `Coverage score: ${validatedAnalysis.qualityMetrics.coverageScore}/100`,
+        `Automation readiness: ${validatedAnalysis.automationReadiness.score}/100`,
+        'Review scenarios and customize as needed'
+      ]
+    };
+  } catch (error) {
+    if (error instanceof Error && error.name === 'ZodError') {
+      return {
+        success: false,
+        error: 'AI Gherkin analysis response does not match expected schema',
+        validation_errors: error.message,
+        project_root: rootDir
+      };
+    }
+
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error occurred',
+      project_root: rootDir
+    };
+  }
+}
+
+// Helper function to format Gherkin content from AI analysis
+function formatGherkinFromAnalysis(analysis: any): string {
+  const feature = analysis.feature;
+  let gherkinContent = `Feature: ${feature.title}\n`;
+
+  if (feature.description) {
+    gherkinContent += `  ${feature.description}\n`;
+  }
+
+  gherkinContent += '\n';
+
+  // Add background if present
+  if (feature.background && feature.background.length > 0) {
+    gherkinContent += '  Background:\n';
+    feature.background.forEach((step: any) => {
+      gherkinContent += `    ${step.type.charAt(0).toUpperCase() + step.type.slice(1)} ${step.text}\n`;
+    });
+    gherkinContent += '\n';
+  }
+
+  // Add scenarios
+  feature.scenarios.forEach((scenario: any, index: number) => {
+    if (index > 0) gherkinContent += '\n';
+
+    // Add tags if present
+    if (scenario.tags && scenario.tags.length > 0) {
+      gherkinContent += `  ${scenario.tags.map((tag: string) => `@${tag}`).join(' ')}\n`;
+    }
+
+    gherkinContent += `  Scenario: ${scenario.title}\n`;
+
+    if (scenario.description) {
+      gherkinContent += `    ${scenario.description}\n`;
+    }
+
+    // Add steps
+    scenario.steps.forEach((step: any) => {
+      gherkinContent += `    ${step.type.charAt(0).toUpperCase() + step.type.slice(1)} ${step.text}\n`;
+    });
+
+    // Add examples if present
+    if (scenario.examples && scenario.examples.length > 0) {
+      gherkinContent += '\n    Examples:\n';
+      scenario.examples.forEach((example: any) => {
+        gherkinContent += `      | ${example.description} |\n`;
+        Object.entries(example.data).forEach(([key, value]) => {
+          gherkinContent += `      | ${key} | ${value} |\n`;
+        });
+      });
+    }
+  });
+
+  // Add testing notes as comments
+  if (feature.testingNotes) {
+    gherkinContent += '\n\n# Testing Notes:\n';
+    gherkinContent += `# ${feature.testingNotes}\n`;
+  }
+
+  return gherkinContent;
 }
 
 // Export aliases for test compatibility

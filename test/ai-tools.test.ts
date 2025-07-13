@@ -95,7 +95,18 @@ describe('App', () => {
           tasksPerFeature: 10,
           includePatterns: true,
           testFramework: "vitest",
-          gherkinStyle: "declarative"
+          gherkinStyle: "declarative",
+          gherkinQuality: {
+            useAIGeneration: true,
+            scenarioComplexity: "standard",
+            includeEdgeCases: true,
+            includeSecurityScenarios: true,
+            includePerformanceScenarios: false,
+            minScenarioCount: 3,
+            maxScenarioCount: 8,
+            requireDataTables: false,
+            requireBackground: false
+          }
         },
         storage: {
           tasksDir: "./speclinter-tasks",

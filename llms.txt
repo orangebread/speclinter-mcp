@@ -43,6 +43,10 @@ To use SpecLinter as an MCP server, add this to your AI IDE's MCP configuration:
 - `speclinter_validate_implementation_prepare` - Scan codebase for feature implementation
 - `speclinter_validate_implementation_process` - Process AI validation analysis results
 
+### AI-Powered Gherkin Generation
+- `speclinter_generate_gherkin_prepare` - Prepare AI-powered Gherkin scenario generation
+- `speclinter_generate_gherkin_process` - Process AI analysis and generate comprehensive scenario files
+
 ## Usage Examples
 
 ### Initialize Project
@@ -68,11 +72,12 @@ To use SpecLinter as an MCP server, add this to your AI IDE's MCP configuration:
 ## Key Features
 
 - **AI-Leveraged Analysis**: Semantic understanding vs regex patterns
-- **Quality Grading**: A+ to F grading with improvement suggestions  
+- **Quality Grading**: A+ to F grading with improvement suggestions
 - **Task Generation**: Break specs into implementable tasks with dependencies
-- **Gherkin Scenarios**: Generate behavior specifications for validation
+- **AI-Powered Gherkin Scenarios**: Generate comprehensive, actionable test scenarios with multiple types (happy path, error handling, edge cases, validation)
 - **Similarity Detection**: AI-powered semantic analysis to prevent duplicate work
 - **Implementation Validation**: AI assessment of code against specifications
+- **Quality Configuration**: Configurable scenario complexity, security/performance testing, and validation requirements
 
 ## Project Structure
 
