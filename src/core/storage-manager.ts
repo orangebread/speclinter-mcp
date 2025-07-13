@@ -50,7 +50,6 @@ export class StorageManager {
       const directories = [
         '.speclinter',
         '.speclinter/context',
-        '.speclinter/cache',
         'speclinter-tasks'
       ];
 
@@ -82,7 +81,7 @@ export class StorageManager {
         // .gitignore already exists, don't overwrite
       } catch {
         // .gitignore doesn't exist, create it
-        await fs.writeFile(gitignorePath, 'cache/\n*.db\n*.db-journal\n');
+        await fs.writeFile(gitignorePath, '*.db\n*.db-journal\n');
       }
 
     } catch (error) {

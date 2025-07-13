@@ -88,7 +88,6 @@ your-project/
 ├── .speclinter/
 │   ├── config.json            # Configuration
 │   ├── speclinter.db          # SQLite database
-│   ├── cache/                 # Analysis cache
 │   └── context/               # Project context
 │       ├── project.md         # Tech stack, constraints
 │       ├── patterns.md        # Code patterns

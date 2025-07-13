@@ -121,7 +121,6 @@ export async function handleInitProject(args: any) {
     const directories = [
       '.speclinter',
       '.speclinter/context',
-      '.speclinter/cache',
       'speclinter-tasks'
     ];
 
@@ -142,7 +141,7 @@ export async function handleInitProject(args: any) {
 
     // Create .gitignore for speclinter
     const gitignorePath = path.join(speclinterDir, '.gitignore');
-    await fs.writeFile(gitignorePath, 'cache/\n*.db\n*.db-journal\n');
+    await fs.writeFile(gitignorePath, '*.db\n*.db-journal\n');
 
     // Initialize database and create tables
     const storage = new Storage(root);

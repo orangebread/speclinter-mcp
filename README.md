@@ -287,7 +287,6 @@ Advanced AI-powered validation that understands your code:
 your-project/
 ├── .speclinter/
 │   ├── config.json         # Settings
-│   ├── cache/              # Analysis cache
 │   └── context/            # AI-generated project docs
 └── speclinter-tasks/
     └── [feature-name]/
