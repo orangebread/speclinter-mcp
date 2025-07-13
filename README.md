@@ -132,18 +132,32 @@ node dist/cli.js serve
 "Parse this spec: Create a user login form"
 ```
 
+### 📖 GitMCP Integration
+For documentation access and examples, you can also add GitMCP integration:
+```json
+{
+  "mcpServers": {
+    "speclinter-docs": {
+      "command": "npx",
+      "args": ["mcp-remote", "https://gitmcp.io/orangebread/speclinter-mcp"]
+    }
+  }
+}
+```
+This provides AI access to SpecLinter documentation and usage examples.
+
 ## 🐳 Docker Alternative
 
-**One command setup:**
+**Quick Docker Setup:**
 ```bash
-git clone https://github.com/orangebread/speclinter-mcp.git && cd speclinter-mcp && docker build -t speclinter/mcp . && docker run -it --rm -v $(pwd):/workspace speclinter/mcp
-```
+# Clone and build
+git clone https://github.com/orangebread/speclinter-mcp.git
+cd speclinter-mcp
+docker build -t speclinter/mcp .
 
-This will:
-- Clone the repo
-- Build the Docker image
-- Start SpecLinter (terminal will stay open for MCP connection)
-- Mount your current directory so data persists
+# Run SpecLinter server
+docker run -d --name speclinter-server -v $(pwd):/workspace speclinter/mcp
+```
 
 **MCP Configuration for Docker:**
 ```json
@@ -151,11 +165,17 @@ This will:
   "mcpServers": {
     "speclinter": {
       "command": "docker",
-      "args": ["run", "--rm", "-i", "-v", "$(pwd):/workspace", "speclinter/mcp", "serve"]
+      "args": ["exec", "-i", "speclinter-server", "node", "/app/dist/cli.js", "serve"]
     }
   }
 }
 ```
+
+**Benefits:**
+- ✅ No Node.js installation required
+- ✅ Isolated environment
+- ✅ Consistent across all platforms
+- ✅ Easy cleanup with `docker rm -f speclinter-server`
 
 
 
@@ -206,7 +226,7 @@ Error Handling:
 ## 🔧 Advanced Features
 
 ### 🧪 AI-Powered Gherkin Scenarios
-Every task gets comprehensive, actionable test scenarios:
+Every task gets comprehensive, actionable test scenarios with enhanced AI generation:
 ```gherkin
 Feature: User Authentication System
   Implement secure user login and registration with email verification
@@ -236,12 +256,14 @@ Feature: User Authentication System
     And the user should understand what needs to be corrected
 ```
 
-**🎯 Scenario Quality Features:**
-- **Multiple Types**: Happy path, error handling, edge cases, validation scenarios
+**🎯 Enhanced Scenario Features:**
+- **AI-Generated Quality**: Scenarios tailored to your project's tech stack and patterns
+- **Multiple Types**: Happy path, error handling, edge cases, security, and performance scenarios
 - **Specific Data**: Concrete examples instead of generic placeholders
 - **Actionable Steps**: Each step can be implemented as an automated test
 - **Business Focus**: User-centric language with technical accuracy
 - **Comprehensive Coverage**: All acceptance criteria addressed
+- **Configurable Complexity**: Adjust scenario depth and coverage via configuration
 
 ### 🔍 Semantic Similarity Detection
 Prevents duplicate work by finding similar features:
@@ -252,11 +274,13 @@ Recommendation: Extend existing feature
 ```
 
 ### 🤖 AI Implementation Validation
-Validates your code against original specifications:
-- **Scans codebase** for implementation files
-- **Semantic analysis** of what code actually does
-- **Quality scoring** with specific recommendations
-- **Auto-updates** task statuses based on findings
+Advanced AI-powered validation that understands your code:
+- **Intelligent Codebase Scanning** - Finds implementation files using semantic analysis
+- **Context-Aware Analysis** - Understands your project's patterns and tech stack
+- **Quality Assessment** - Provides detailed scoring with specific recommendations
+- **Acceptance Criteria Validation** - Checks each requirement against actual implementation
+- **Auto-Status Updates** - Updates task statuses based on implementation findings
+- **Architectural Review** - Ensures consistency with project patterns and standards
 
 ### 📁 Project Structure
 ```
@@ -279,7 +303,7 @@ Just talk to your AI assistant naturally! Here are the most common commands:
 ### 🚀 Getting Started
 ```
 "Initialize SpecLinter in my project"
-"Analyze my codebase to understand patterns"
+"Analyze my codebase to understand patterns and tech stack"
 ```
 
 ### 📝 Working with Specs
@@ -287,6 +311,7 @@ Just talk to your AI assistant naturally! Here are the most common commands:
 "Parse this spec: Create a user authentication system with email verification"
 "Grade this specification: [your spec here]"
 "Find similar features to: user profile management"
+"Generate comprehensive Gherkin scenarios for my authentication feature"
 ```
 
 ### 📊 Managing Tasks
@@ -294,6 +319,7 @@ Just talk to your AI assistant naturally! Here are the most common commands:
 "Show me the status of my authentication tasks"
 "Mark the database setup task as completed"
 "Validate the implementation of my login feature"
+"Update task status for WebSocket connection to completed"
 ```
 
 > **💡 Pro Tip**: SpecLinter works through your AI IDE - no CLI commands needed for daily use!
@@ -352,18 +378,23 @@ SpecLinter can detect similar features across multiple repositories and microser
 git clone https://github.com/orangebread/speclinter-mcp.git
 cd speclinter-mcp
 
-# Build Docker image
-docker build -t speclinter/mcp:latest .
-
-# Or traditional development
+# Traditional development
 pnpm install && pnpm build
 
 # Available scripts
 pnpm build        # Build for production
-pnpm test         # Run tests
-pnpm lint         # Lint code
-pnpm dev          # Watch mode
+pnpm test         # Run Vitest tests (implementation validation)
+pnpm lint         # Lint code with ESLint
+pnpm dev          # Watch mode for development
+pnpm start        # Start MCP server
+
+# Docker development
+docker build -t speclinter/mcp:latest .
+docker run -it --rm -v $(pwd):/workspace speclinter/mcp
 ```
+
+### 🧪 Testing
+SpecLinter uses Vitest for implementation validation rather than traditional unit tests. The test framework validates that features are implemented according to their specifications using AI-generated Gherkin scenarios.
 
 ## 🏗️ Architecture
 

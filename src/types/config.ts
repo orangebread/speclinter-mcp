@@ -2,19 +2,6 @@ import { z } from 'zod';
 
 export const ConfigSchema = z.object({
   version: z.string(),
-  grading: z.object({
-    strictMode: z.boolean(),
-    minWordCount: z.number(),
-    requireAcceptanceCriteria: z.boolean(),
-    requireUserStory: z.boolean(),
-    vagueTerms: z.array(z.string()),
-    gradeThresholds: z.object({
-      A: z.number(),
-      B: z.number(),
-      C: z.number(),
-      D: z.number()
-    })
-  }),
   generation: z.object({
     tasksPerFeature: z.number(),
     includePatterns: z.boolean(),
@@ -30,6 +17,16 @@ export const ConfigSchema = z.object({
       maxScenarioCount: z.number(),
       requireDataTables: z.boolean(),
       requireBackground: z.boolean()
+    }),
+    specAnalysis: z.object({
+      analysisDepth: z.enum(['quick', 'standard', 'comprehensive']),
+      qualityThreshold: z.number().min(0).max(100),
+      taskComplexity: z.enum(['basic', 'standard', 'comprehensive']),
+      includeBusinessValue: z.boolean(),
+      includeTechnicalDebt: z.boolean(),
+      includeRiskAssessment: z.boolean(),
+      confidenceThreshold: z.number().min(0).max(1),
+      maxRetries: z.number().min(0).max(5)
     })
   }),
   storage: z.object({
@@ -55,19 +52,6 @@ export type Config = z.infer<typeof ConfigSchema>;
 
 export const DEFAULT_CONFIG: Config = {
   version: "1.0.0",
-  grading: {
-    strictMode: false,
-    minWordCount: 20,
-    requireAcceptanceCriteria: true,
-    requireUserStory: false,
-    vagueTerms: ["fast", "easy", "good", "simple", "nice"],
-    gradeThresholds: {
-      A: 90,
-      B: 80,
-      C: 70,
-      D: 60
-    }
-  },
   generation: {
     tasksPerFeature: 10,
     includePatterns: true,
@@ -83,6 +67,16 @@ export const DEFAULT_CONFIG: Config = {
       maxScenarioCount: 8,
       requireDataTables: false,
       requireBackground: false
+    },
+    specAnalysis: {
+      analysisDepth: "standard",
+      qualityThreshold: 70,
+      taskComplexity: "standard",
+      includeBusinessValue: true,
+      includeTechnicalDebt: true,
+      includeRiskAssessment: true,
+      confidenceThreshold: 0.7,
+      maxRetries: 2
     }
   },
   storage: {

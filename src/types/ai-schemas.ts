@@ -227,8 +227,305 @@ export const AIFeatureValidationSchema = z.object({
   }).describe('AI insights and observations')
 });
 
+// Enhanced AI Spec Analysis Schemas for Parser Replacement
+export const AISpecQualityAnalysisSchema = z.object({
+  overallScore: z.number().min(0).max(100).describe('Overall specification quality score based on semantic analysis'),
+  grade: z.enum(['A+', 'A', 'B', 'C', 'D', 'F']).describe('Letter grade for the specification'),
+  qualityDimensions: z.object({
+    clarity: z.number().min(0).max(100).describe('How clear and unambiguous the specification is'),
+    completeness: z.number().min(0).max(100).describe('How complete the specification is'),
+    testability: z.number().min(0).max(100).describe('How testable the requirements are'),
+    feasibility: z.number().min(0).max(100).describe('How technically feasible the requirements are'),
+    businessValue: z.number().min(0).max(100).describe('How well business value is articulated')
+  }).describe('Detailed quality assessment across multiple dimensions'),
+  semanticIssues: z.array(z.object({
+    type: z.enum(['ambiguous_requirement', 'missing_acceptance_criteria', 'vague_language', 'conflicting_requirements', 'missing_context', 'unclear_scope', 'missing_error_handling', 'performance_gaps', 'security_gaps']).describe('Type of semantic issue detected'),
+    severity: z.enum(['low', 'medium', 'high', 'critical']).describe('Issue severity based on impact'),
+    description: z.string().describe('Detailed description of the issue'),
+    location: z.string().describe('Where in the spec this issue occurs'),
+    suggestion: z.string().describe('Specific, actionable suggestion to resolve the issue'),
+    impact: z.string().describe('How this issue affects implementation'),
+    confidence: z.number().min(0).max(1).describe('AI confidence in this issue detection')
+  })).describe('Semantic issues found through AI analysis'),
+  strengths: z.array(z.object({
+    aspect: z.string().describe('What aspect of the spec is strong'),
+    description: z.string().describe('Why this is a strength'),
+    examples: z.array(z.string()).describe('Specific examples from the spec')
+  })).describe('Positive aspects of the specification'),
+  improvements: z.array(z.object({
+    priority: z.enum(['low', 'medium', 'high', 'critical']).describe('Priority of this improvement'),
+    category: z.enum(['clarity', 'completeness', 'testability', 'feasibility', 'business_value']).describe('Category of improvement'),
+    suggestion: z.string().describe('Specific improvement suggestion'),
+    rationale: z.string().describe('Why this improvement is needed'),
+    example: z.string().optional().describe('Example of how to implement this improvement')
+  })).describe('Prioritized improvement suggestions'),
+  aiInsights: z.object({
+    confidence: z.number().min(0).max(1).describe('Overall AI confidence in the analysis'),
+    analysisDepth: z.enum(['surface', 'standard', 'deep']).describe('Depth of analysis performed'),
+    contextFactors: z.array(z.string()).describe('Project context factors that influenced the analysis'),
+    recommendations: z.array(z.string()).describe('High-level recommendations for spec improvement')
+  }).describe('AI-specific insights and metadata')
+});
+
+export const AITaskGenerationSchema = z.object({
+  tasks: z.array(z.object({
+    title: z.string().describe('Clear, actionable task title with specific verbs and measurable outcomes'),
+    summary: z.string().describe('Concise summary focusing on user value and business impact'),
+    description: z.string().describe('Detailed description of what needs to be implemented'),
+    implementation: z.object({
+      approach: z.string().describe('High-level implementation approach'),
+      technicalSteps: z.array(z.string()).describe('Specific technical steps to implement'),
+      fileLocations: z.array(z.string()).describe('Expected file locations and modifications'),
+      codePatterns: z.array(z.string()).describe('Relevant code patterns to follow'),
+      dependencies: z.array(z.string()).describe('Technical dependencies and prerequisites'),
+      riskFactors: z.array(z.string()).describe('Implementation risks and mitigation strategies')
+    }).describe('Comprehensive implementation guidance'),
+    acceptanceCriteria: z.array(z.object({
+      criteria: z.string().describe('Specific, measurable acceptance criteria'),
+      validationMethod: z.string().describe('How to validate this criteria'),
+      priority: z.enum(['must_have', 'should_have', 'nice_to_have']).describe('Priority level'),
+      testable: z.boolean().describe('Whether this criteria can be automatically tested')
+    })).describe('Enhanced acceptance criteria with validation methods'),
+    estimatedEffort: z.object({
+      size: z.enum(['XS', 'S', 'M', 'L', 'XL']).describe('T-shirt size estimate'),
+      hours: z.number().optional().describe('Estimated hours if available'),
+      complexity: z.enum(['low', 'medium', 'high']).describe('Implementation complexity'),
+      uncertainty: z.enum(['low', 'medium', 'high']).describe('Level of uncertainty in estimate')
+    }).describe('Detailed effort estimation'),
+    businessValue: z.object({
+      userImpact: z.string().describe('How this task impacts users'),
+      businessImpact: z.string().describe('Business value delivered'),
+      priority: z.enum(['low', 'medium', 'high', 'critical']).describe('Business priority')
+    }).describe('Business value assessment'),
+    technicalConsiderations: z.array(z.object({
+      category: z.enum(['performance', 'security', 'scalability', 'maintainability', 'compatibility']).describe('Category of consideration'),
+      description: z.string().describe('Specific technical consideration'),
+      impact: z.enum(['low', 'medium', 'high']).describe('Impact level'),
+      mitigation: z.string().optional().describe('How to mitigate this consideration')
+    })).describe('Technical considerations and constraints'),
+    dependencies: z.array(z.object({
+      taskTitle: z.string().describe('Title of dependent task'),
+      relationship: z.enum(['blocks', 'enables', 'enhances']).describe('Type of dependency'),
+      reason: z.string().describe('Why this dependency exists')
+    })).describe('Task dependencies with relationships'),
+    testingStrategy: z.object({
+      unitTests: z.array(z.string()).describe('Unit test scenarios'),
+      integrationTests: z.array(z.string()).describe('Integration test scenarios'),
+      e2eTests: z.array(z.string()).describe('End-to-end test scenarios'),
+      manualTests: z.array(z.string()).describe('Manual testing scenarios'),
+      testData: z.array(z.string()).describe('Test data requirements')
+    }).describe('Comprehensive testing strategy'),
+    aiInsights: z.object({
+      confidence: z.number().min(0).max(1).describe('AI confidence in task breakdown'),
+      alternativeApproaches: z.array(z.string()).describe('Alternative implementation approaches'),
+      potentialIssues: z.array(z.string()).describe('Potential implementation issues'),
+      optimizations: z.array(z.string()).describe('Potential optimizations')
+    }).describe('AI-generated insights and alternatives')
+  })).describe('AI-generated tasks with comprehensive details'),
+  taskRelationships: z.array(z.object({
+    fromTask: z.string().describe('Source task title'),
+    toTask: z.string().describe('Target task title'),
+    relationship: z.enum(['prerequisite', 'parallel', 'sequential', 'optional']).describe('Relationship type'),
+    description: z.string().describe('Description of the relationship')
+  })).describe('Relationships between tasks'),
+  implementationStrategy: z.object({
+    approach: z.enum(['incremental', 'big_bang', 'parallel', 'phased']).describe('Overall implementation approach'),
+    phases: z.array(z.object({
+      name: z.string().describe('Phase name'),
+      tasks: z.array(z.string()).describe('Task titles in this phase'),
+      deliverables: z.array(z.string()).describe('Phase deliverables'),
+      duration: z.string().describe('Estimated phase duration')
+    })).describe('Implementation phases'),
+    riskMitigation: z.array(z.string()).describe('Overall risk mitigation strategies'),
+    successCriteria: z.array(z.string()).describe('Success criteria for the entire feature')
+  }).describe('Overall implementation strategy'),
+  qualityMetrics: z.object({
+    taskCount: z.number().describe('Total number of tasks generated'),
+    averageComplexity: z.number().min(1).max(5).describe('Average task complexity (1-5)'),
+    coverageScore: z.number().min(0).max(100).describe('How well tasks cover the specification'),
+    actionabilityScore: z.number().min(0).max(100).describe('How actionable the tasks are'),
+    testabilityScore: z.number().min(0).max(100).describe('How testable the tasks are')
+  }).describe('Quality metrics for the generated tasks')
+});
+
+export const AISpecParserAnalysisSchema = z.object({
+  qualityAnalysis: AISpecQualityAnalysisSchema,
+  taskGeneration: AITaskGenerationSchema,
+  projectAlignment: z.object({
+    techStackCompatibility: z.number().min(0).max(100).describe('How well the spec aligns with project tech stack'),
+    architecturalFit: z.number().min(0).max(100).describe('How well the spec fits the project architecture'),
+    patternCompliance: z.array(z.object({
+      pattern: z.string().describe('Project pattern name'),
+      compliance: z.enum(['follows', 'partially_follows', 'violates', 'not_applicable']).describe('Compliance level'),
+      recommendation: z.string().describe('Recommendation for better compliance')
+    })).describe('Compliance with existing project patterns'),
+    integrationPoints: z.array(z.object({
+      component: z.string().describe('Component or system to integrate with'),
+      complexity: z.enum(['low', 'medium', 'high']).describe('Integration complexity'),
+      considerations: z.array(z.string()).describe('Integration considerations')
+    })).describe('Integration points with existing systems')
+  }).describe('How well the specification aligns with the existing project'),
+  businessContext: z.object({
+    userStories: z.array(z.object({
+      role: z.string().describe('User role (As a...)'),
+      goal: z.string().describe('User goal (I want...)'),
+      benefit: z.string().describe('User benefit (So that...)'),
+      priority: z.enum(['low', 'medium', 'high', 'critical']).describe('Story priority'),
+      extractedFrom: z.string().describe('Where in the spec this was extracted from')
+    })).describe('Extracted or inferred user stories'),
+    businessValue: z.string().describe('Overall business value and impact'),
+    stakeholders: z.array(z.string()).describe('Identified stakeholders'),
+    successMetrics: z.array(z.string()).describe('Suggested success metrics')
+  }).describe('Business context and value analysis'),
+  implementationGuidance: z.object({
+    recommendedApproach: z.string().describe('Recommended overall implementation approach'),
+    criticalPath: z.array(z.string()).describe('Critical path tasks'),
+    quickWins: z.array(z.string()).describe('Quick win opportunities'),
+    riskAreas: z.array(z.object({
+      area: z.string().describe('Risk area'),
+      risk: z.string().describe('Description of the risk'),
+      mitigation: z.string().describe('Suggested mitigation'),
+      impact: z.enum(['low', 'medium', 'high']).describe('Risk impact')
+    })).describe('Risk areas and mitigation strategies'),
+    dependencies: z.array(z.object({
+      type: z.enum(['internal', 'external', 'technical', 'business']).describe('Dependency type'),
+      description: z.string().describe('Dependency description'),
+      impact: z.enum(['low', 'medium', 'high']).describe('Impact if not resolved'),
+      mitigation: z.string().describe('How to handle this dependency')
+    })).describe('External dependencies and constraints')
+  }).describe('Implementation guidance and recommendations'),
+  aiMetadata: z.object({
+    analysisTimestamp: z.string().describe('When this analysis was performed'),
+    modelConfidence: z.number().min(0).max(1).describe('Overall model confidence'),
+    analysisDepth: z.enum(['quick', 'standard', 'comprehensive']).describe('Depth of analysis performed'),
+    contextFactors: z.array(z.string()).describe('Context factors that influenced the analysis'),
+    limitations: z.array(z.string()).describe('Known limitations of this analysis'),
+    recommendations: z.array(z.string()).describe('Recommendations for improving the analysis')
+  }).describe('AI analysis metadata and confidence indicators')
+});
+
 // AI prompt templates for comprehensive documentation generation
 export const AIPromptTemplates = {
+  specQualityAnalysis: `You are an expert software specification analyst. Analyze the provided specification for quality, clarity, and completeness.
+
+**SPECIFICATION TO ANALYZE:**
+{specification}
+
+**PROJECT CONTEXT:**
+{projectContext}
+
+**ANALYSIS REQUIREMENTS:**
+1. **Semantic Quality Assessment**: Evaluate clarity, completeness, testability, feasibility, and business value
+2. **Issue Detection**: Identify ambiguous requirements, missing acceptance criteria, vague language, conflicting requirements, scope gaps
+3. **Strength Identification**: Highlight what the specification does well with specific examples
+4. **Improvement Recommendations**: Provide prioritized, actionable suggestions with rationale
+
+**QUALITY DIMENSIONS TO EVALUATE:**
+- **Clarity (0-100)**: How clear and unambiguous are the requirements?
+- **Completeness (0-100)**: Are all necessary details provided?
+- **Testability (0-100)**: Can requirements be easily tested and validated?
+- **Feasibility (0-100)**: Are requirements technically achievable?
+- **Business Value (0-100)**: Is business value clearly articulated?
+
+**CONTEXT FACTORS TO CONSIDER:**
+- Project tech stack: {techStack}
+- Existing patterns: {codePatterns}
+- Architecture: {architecture}
+- Team experience level: {teamLevel}
+
+Provide a comprehensive analysis following the AISpecQualityAnalysisSchema format. Focus on semantic understanding rather than keyword matching.`,
+
+  taskGeneration: `You are an expert software architect and project manager. Break down the provided specification into comprehensive, actionable tasks.
+
+**SPECIFICATION:**
+{specification}
+
+**QUALITY ANALYSIS RESULTS:**
+{qualityAnalysis}
+
+**PROJECT CONTEXT:**
+{projectContext}
+
+**TASK GENERATION REQUIREMENTS:**
+1. **Comprehensive Breakdown**: Create detailed, actionable tasks that fully implement the specification
+2. **Implementation Guidance**: Provide specific technical steps, file locations, and code patterns
+3. **Acceptance Criteria**: Generate measurable, testable criteria with validation methods
+4. **Effort Estimation**: Provide realistic estimates with complexity and uncertainty factors
+5. **Business Value**: Connect each task to user and business impact
+6. **Technical Considerations**: Address performance, security, scalability, maintainability
+7. **Testing Strategy**: Define comprehensive testing approach for each task
+8. **Dependencies**: Identify and describe task relationships
+
+**CONTEXT FOR TASK GENERATION:**
+- Tech Stack: {techStack}
+- Test Framework: {testFramework}
+- Code Patterns: {codePatterns}
+- Architecture: {architecture}
+- Project Structure: {projectStructure}
+
+**TASK QUALITY CRITERIA:**
+- Each task should be completable by a developer in 4-8 hours
+- Tasks should have clear, measurable outcomes
+- Implementation guidance should be technology-specific
+- Acceptance criteria should be testable
+- Dependencies should be clearly defined
+
+Generate tasks following the AITaskGenerationSchema format. Ensure tasks are comprehensive, actionable, and aligned with project patterns.`,
+
+  specParserAnalysis: `You are an expert software specification analyst and architect. Perform a comprehensive analysis of the provided specification including quality assessment, task generation, and implementation guidance.
+
+**SPECIFICATION TO ANALYZE:**
+{specification}
+
+**PROJECT CONTEXT:**
+- Tech Stack: {techStack}
+- Architecture: {architecture}
+- Code Patterns: {codePatterns}
+- Project Structure: {projectStructure}
+- Test Framework: {testFramework}
+- Team Context: {teamContext}
+
+**COMPREHENSIVE ANALYSIS REQUIREMENTS:**
+
+1. **QUALITY ANALYSIS**:
+   - Semantic evaluation across 5 dimensions (clarity, completeness, testability, feasibility, business value)
+   - Issue detection with severity, location, and actionable suggestions
+   - Strength identification with specific examples
+   - Prioritized improvement recommendations
+
+2. **TASK GENERATION**:
+   - Comprehensive task breakdown with implementation guidance
+   - Enhanced acceptance criteria with validation methods
+   - Effort estimation with complexity and uncertainty factors
+   - Business value assessment for each task
+   - Technical considerations (performance, security, scalability)
+   - Testing strategy (unit, integration, e2e, manual)
+   - Task dependencies and relationships
+
+3. **PROJECT ALIGNMENT**:
+   - Tech stack compatibility assessment
+   - Architectural fit evaluation
+   - Pattern compliance analysis
+   - Integration point identification
+
+4. **BUSINESS CONTEXT**:
+   - User story extraction/inference
+   - Business value articulation
+   - Stakeholder identification
+   - Success metrics definition
+
+5. **IMPLEMENTATION GUIDANCE**:
+   - Recommended implementation approach
+   - Critical path identification
+   - Quick win opportunities
+   - Risk assessment and mitigation
+   - Dependency management
+
+**ANALYSIS DEPTH**: {analysisDepth}
+**FOCUS AREAS**: {focusAreas}
+
+Provide a comprehensive response following the AISpecParserAnalysisSchema format. Ensure all analysis is based on semantic understanding and project context rather than simple keyword matching.`,
+
   codebaseAnalysis: `Analyze the provided codebase files and generate comprehensive project documentation.
 
 🎯 **PROJECT CONTEXT ANALYSIS:**
@@ -517,6 +814,11 @@ export type AISpecAnalysis = z.infer<typeof AISpecAnalysisSchema>;
 export type AISimilarityAnalysis = z.infer<typeof AISimilarityAnalysisSchema>;
 export type AIContextFiles = z.infer<typeof AIContextFilesSchema>;
 export type AIGherkinStep = z.infer<typeof AIGherkinStepSchema>;
+
+// Enhanced AI Spec Analysis Types
+export type AISpecQualityAnalysis = z.infer<typeof AISpecQualityAnalysisSchema>;
+export type AITaskGeneration = z.infer<typeof AITaskGenerationSchema>;
+export type AISpecParserAnalysis = z.infer<typeof AISpecParserAnalysisSchema>;
 export type AIGherkinScenario = z.infer<typeof AIGherkinScenarioSchema>;
 export type AIGherkinFeature = z.infer<typeof AIGherkinFeatureSchema>;
 export type AIGherkinAnalysis = z.infer<typeof AIGherkinAnalysisSchema>;

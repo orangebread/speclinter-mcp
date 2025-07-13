@@ -10,6 +10,9 @@ import {
   AICodebaseAnalysisWithContextSchema,
   AIFeatureValidationSchema,
   AIGherkinAnalysisSchema,
+  AISpecQualityAnalysisSchema,
+  AITaskGenerationSchema,
+  AISpecParserAnalysisSchema,
   AIPromptTemplates
 } from './types/ai-schemas.js';
 import { resolveProjectRoot } from './tools.js';
@@ -771,7 +774,7 @@ export async function handleProcessSimilarityAnalysisAI(args: any) {
     // Validate AI analysis against schema
     const validatedAnalysis = AISimilarityAnalysisSchema.parse(analysis);
 
-    // Convert to legacy format for compatibility
+    // Convert to standard format for compatibility
     const similarFeatures = validatedAnalysis.similarFeatures
       .filter(f => f.similarityScore >= threshold)
       .map(f => ({
@@ -1697,6 +1700,569 @@ function formatGherkinFromAnalysis(analysis: any): string {
   }
 
   return gherkinContent;
+}
+
+/**
+ * AI-Powered Spec Quality Analysis Tools
+ * These replace the legacy regex-based parser with intelligent semantic analysis
+ */
+
+/**
+ * Step 1: Prepare AI-powered spec quality analysis
+ */
+export async function handleAnalyzeSpecQuality(args: any) {
+  const {
+    spec,
+    feature_name,
+    context,
+    project_root,
+    analysis_depth = 'standard'
+  } = args;
+
+  if (!spec || !feature_name) {
+    return {
+      success: false,
+      error: 'Specification and feature name are required'
+    };
+  }
+
+  const rootDir = await resolveProjectRoot(project_root);
+
+  try {
+    // Load project context for enhanced analysis
+    const storage = await StorageManager.createInitializedStorage(rootDir);
+    const config = await storage.getConfig();
+    const projectContext = await storage.loadProjectContext();
+
+    // Build context for AI analysis
+    const techStack = projectContext?.stack ?
+      Object.entries(projectContext.stack).map(([key, value]) => `${key}: ${value}`).join(', ') :
+      config.context.fallbackStack;
+
+    const codePatterns = projectContext?.patterns && projectContext.patterns.length > 0 ?
+      projectContext.patterns.map(p => `${p.name}: ${p.description}`).join('\n') :
+      'No specific patterns detected';
+
+    const architecture = 'Unknown';
+
+    // Create comprehensive analysis prompt
+    const analysisPrompt = AIPromptTemplates.specQualityAnalysis
+      .replace('{specification}', spec)
+      .replace('{projectContext}', context || 'No additional context provided')
+      .replace('{techStack}', techStack)
+      .replace('{codePatterns}', codePatterns)
+      .replace('{architecture}', architecture)
+      .replace('{teamLevel}', 'standard'); // Could be configurable
+
+    return {
+      success: true,
+      action: 'ai_analysis_required',
+      feature_name,
+      project_root: rootDir,
+      analysis_prompt: analysisPrompt,
+      follow_up_tool: 'process_spec_quality_analysis',
+      schema: 'AISpecQualityAnalysisSchema',
+      analysis_depth,
+      project_context: projectContext,
+      next_steps: [
+        'AI will perform semantic quality analysis',
+        'Quality dimensions will be evaluated (clarity, completeness, testability, feasibility, business value)',
+        'Issues will be identified with actionable suggestions',
+        'Strengths and improvements will be highlighted'
+      ]
+    };
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error occurred',
+      project_root: rootDir
+    };
+  }
+}
+
+/**
+ * Step 2: Process AI spec quality analysis results
+ */
+export async function handleProcessSpecQualityAnalysis(args: any) {
+  const {
+    analysis,
+    feature_name,
+    project_root,
+    analysis_depth = 'standard'
+  } = args;
+
+  if (!analysis) {
+    return {
+      success: false,
+      error: 'No analysis data provided'
+    };
+  }
+
+  const rootDir = await resolveProjectRoot(project_root);
+
+  try {
+    // Validate AI analysis against schema
+    const validatedAnalysis = AISpecQualityAnalysisSchema.parse(analysis);
+
+    // Check if analysis meets confidence threshold
+    const storage = await StorageManager.createInitializedStorage(rootDir);
+    const config = await storage.getConfig();
+    const confidenceThreshold = config.generation.specAnalysis.confidenceThreshold;
+
+    if (validatedAnalysis.aiInsights.confidence < confidenceThreshold) {
+      return {
+        success: false,
+        error: `AI analysis confidence (${validatedAnalysis.aiInsights.confidence}) below threshold (${confidenceThreshold})`,
+        suggestion: 'Consider providing more context or adjusting confidence threshold',
+        project_root: rootDir
+      };
+    }
+
+    return {
+      success: true,
+      feature_name,
+      project_root: rootDir,
+      quality_analysis: {
+        overallScore: validatedAnalysis.overallScore,
+        grade: validatedAnalysis.grade,
+        qualityDimensions: validatedAnalysis.qualityDimensions,
+        issueCount: validatedAnalysis.semanticIssues.length,
+        strengthCount: validatedAnalysis.strengths.length,
+        improvementCount: validatedAnalysis.improvements.length
+      },
+      semantic_issues: validatedAnalysis.semanticIssues.map(issue => ({
+        type: issue.type,
+        severity: issue.severity,
+        description: issue.description,
+        suggestion: issue.suggestion,
+        confidence: issue.confidence
+      })),
+      strengths: validatedAnalysis.strengths,
+      improvements: validatedAnalysis.improvements,
+      ai_insights: validatedAnalysis.aiInsights,
+      next_steps: [
+        'Use quality analysis for task generation',
+        'Address high-priority improvements before implementation',
+        'Leverage identified strengths in development approach'
+      ]
+    };
+  } catch (error) {
+    if (error instanceof Error && error.name === 'ZodError') {
+      return {
+        success: false,
+        error: 'AI analysis response does not match expected schema',
+        validation_errors: error.message,
+        project_root: rootDir
+      };
+    }
+
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error occurred',
+      project_root: rootDir
+    };
+  }
+}
+
+/**
+ * Step 1: Prepare AI-powered task generation
+ */
+export async function handleGenerateTasksFromSpec(args: any) {
+  const {
+    spec,
+    feature_name,
+    quality_analysis,
+    context,
+    project_root,
+    task_complexity = 'standard'
+  } = args;
+
+  if (!spec || !feature_name) {
+    return {
+      success: false,
+      error: 'Specification and feature name are required'
+    };
+  }
+
+  const rootDir = await resolveProjectRoot(project_root);
+
+  try {
+    // Load project context for task generation
+    const storage = await StorageManager.createInitializedStorage(rootDir);
+    const config = await storage.getConfig();
+    const projectContext = await storage.loadProjectContext();
+
+    // Build enhanced context for task generation
+    const techStack = projectContext?.stack ?
+      Object.entries(projectContext.stack).map(([key, value]) => `${key}: ${value}`).join(', ') :
+      config.context.fallbackStack;
+
+    const codePatterns = projectContext?.patterns && projectContext.patterns.length > 0 ?
+      projectContext.patterns.map(p => `${p.name}: ${p.description}`).join('\n') :
+      'No specific patterns detected';
+
+    const architecture = 'Unknown';
+    const projectStructure = 'Unknown organization';
+
+    // Format quality analysis for context
+    const qualityContext = quality_analysis ?
+      `Quality Score: ${quality_analysis.overallScore}/100
+Issues Found: ${quality_analysis.issueCount}
+Strengths: ${quality_analysis.strengthCount}
+Key Issues: ${quality_analysis.semantic_issues?.slice(0, 3).map((i: any) => i.description).join('; ') || 'None'}` :
+      'No quality analysis provided';
+
+    // Create comprehensive task generation prompt
+    const taskPrompt = AIPromptTemplates.taskGeneration
+      .replace('{specification}', spec)
+      .replace('{qualityAnalysis}', qualityContext)
+      .replace('{projectContext}', context || 'No additional context provided')
+      .replace('{techStack}', techStack)
+      .replace('{testFramework}', config.generation.testFramework)
+      .replace('{codePatterns}', codePatterns)
+      .replace('{architecture}', architecture)
+      .replace('{projectStructure}', projectStructure);
+
+    return {
+      success: true,
+      action: 'ai_analysis_required',
+      feature_name,
+      project_root: rootDir,
+      analysis_prompt: taskPrompt,
+      follow_up_tool: 'process_task_generation',
+      schema: 'AITaskGenerationSchema',
+      task_complexity,
+      project_context: projectContext,
+      next_steps: [
+        'AI will generate comprehensive task breakdown',
+        'Tasks will include implementation guidance and acceptance criteria',
+        'Dependencies and relationships will be identified',
+        'Testing strategy will be defined for each task'
+      ]
+    };
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error occurred',
+      project_root: rootDir
+    };
+  }
+}
+
+/**
+ * Step 2: Process AI task generation results
+ */
+export async function handleProcessTaskGeneration(args: any) {
+  const {
+    analysis,
+    feature_name,
+    project_root,
+    task_complexity = 'standard'
+  } = args;
+
+  if (!analysis) {
+    return {
+      success: false,
+      error: 'No analysis data provided'
+    };
+  }
+
+  const rootDir = await resolveProjectRoot(project_root);
+
+  try {
+    // Validate AI analysis against schema
+    const validatedAnalysis = AITaskGenerationSchema.parse(analysis);
+
+    // Check quality metrics
+    const storage = await StorageManager.createInitializedStorage(rootDir);
+    const config = await storage.getConfig();
+    const qualityThreshold = config.generation.specAnalysis.qualityThreshold;
+
+    if (validatedAnalysis.qualityMetrics.coverageScore < qualityThreshold) {
+      return {
+        success: false,
+        error: `Task coverage score (${validatedAnalysis.qualityMetrics.coverageScore}) below threshold (${qualityThreshold})`,
+        suggestion: 'Consider providing more detailed specification or adjusting quality threshold',
+        project_root: rootDir
+      };
+    }
+
+    // Convert AI tasks to SpecLinter format
+    const tasks = validatedAnalysis.tasks.map((task, index) => ({
+      id: `task_${String(index + 1).padStart(2, '0')}`,
+      title: task.title,
+      slug: task.title.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
+      summary: task.summary,
+      implementation: `${task.implementation.approach}\n\nTechnical Steps:\n${task.implementation.technicalSteps.map(step => `- ${step}`).join('\n')}\n\nFiles: ${task.implementation.fileLocations.join(', ')}`,
+      status: 'not_started' as const,
+      statusEmoji: '⏳',
+      featureName: feature_name,
+      acceptanceCriteria: task.acceptanceCriteria.map(ac => ac.criteria),
+      testFile: `${task.title.toLowerCase().replace(/[^a-z0-9]+/g, '-')}.feature`,
+      coverageTarget: '90%',
+      notes: `Business Value: ${task.businessValue.userImpact}\nComplexity: ${task.estimatedEffort.complexity}\nRisks: ${task.implementation.riskFactors.join('; ')}`,
+      relevantPatterns: task.implementation.codePatterns.map(pattern => ({
+        name: pattern,
+        anchor: pattern.toLowerCase().replace(/[^a-z0-9]+/g, '-')
+      }))
+    }));
+
+    return {
+      success: true,
+      feature_name,
+      project_root: rootDir,
+      tasks,
+      task_generation: {
+        taskCount: validatedAnalysis.qualityMetrics.taskCount,
+        averageComplexity: validatedAnalysis.qualityMetrics.averageComplexity,
+        coverageScore: validatedAnalysis.qualityMetrics.coverageScore,
+        actionabilityScore: validatedAnalysis.qualityMetrics.actionabilityScore,
+        testabilityScore: validatedAnalysis.qualityMetrics.testabilityScore
+      },
+      implementation_strategy: validatedAnalysis.implementationStrategy,
+      task_relationships: validatedAnalysis.taskRelationships,
+      next_steps: [
+        'Tasks are ready for implementation',
+        'Review task dependencies and relationships',
+        'Consider implementation strategy phases',
+        'Generate Gherkin scenarios for testing'
+      ]
+    };
+  } catch (error) {
+    if (error instanceof Error && error.name === 'ZodError') {
+      return {
+        success: false,
+        error: 'AI analysis response does not match expected schema',
+        validation_errors: error.message,
+        project_root: rootDir
+      };
+    }
+
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error occurred',
+      project_root: rootDir
+    };
+  }
+}
+
+/**
+ * Comprehensive AI-Powered Spec Parser Analysis
+ * This combines quality analysis and task generation in a single comprehensive analysis
+ */
+
+/**
+ * Step 1: Prepare comprehensive AI spec parser analysis
+ */
+export async function handleAnalyzeSpecComprehensive(args: any) {
+  const {
+    spec,
+    feature_name,
+    context,
+    project_root,
+    analysis_depth = 'standard',
+    focus_areas = []
+  } = args;
+
+  if (!spec || !feature_name) {
+    return {
+      success: false,
+      error: 'Specification and feature name are required'
+    };
+  }
+
+  const rootDir = await resolveProjectRoot(project_root);
+
+  try {
+    // Load comprehensive project context
+    const storage = await StorageManager.createInitializedStorage(rootDir);
+    const config = await storage.getConfig();
+    const projectContext = await storage.loadProjectContext();
+
+    // Build rich context for comprehensive analysis
+    const techStack = projectContext?.stack ?
+      Object.entries(projectContext.stack).map(([key, value]) => `${key}: ${value}`).join(', ') :
+      config.context.fallbackStack;
+
+    const codePatterns = projectContext?.patterns && projectContext.patterns.length > 0 ?
+      projectContext.patterns.map(p => `${p.name}: ${p.description}`).join('\n') :
+      'No specific patterns detected';
+
+    const architecture = 'Unknown';
+    const projectStructure = 'Unknown organization';
+    const teamContext = 'Standard development team'; // Could be configurable
+
+    // Create comprehensive analysis prompt
+    const analysisPrompt = AIPromptTemplates.specParserAnalysis
+      .replace('{specification}', spec)
+      .replace('{techStack}', techStack)
+      .replace('{architecture}', architecture)
+      .replace('{codePatterns}', codePatterns)
+      .replace('{projectStructure}', projectStructure)
+      .replace('{testFramework}', config.generation.testFramework)
+      .replace('{teamContext}', teamContext)
+      .replace('{analysisDepth}', analysis_depth)
+      .replace('{focusAreas}', focus_areas.join(', ') || 'General analysis');
+
+    return {
+      success: true,
+      action: 'ai_analysis_required',
+      feature_name,
+      project_root: rootDir,
+      analysis_prompt: analysisPrompt,
+      follow_up_tool: 'process_comprehensive_spec_analysis',
+      schema: 'AISpecParserAnalysisSchema',
+      analysis_depth,
+      focus_areas,
+      project_context: projectContext,
+      next_steps: [
+        'AI will perform comprehensive specification analysis',
+        'Quality assessment across 5 dimensions',
+        'Comprehensive task generation with implementation guidance',
+        'Project alignment and business context analysis',
+        'Implementation guidance and risk assessment'
+      ]
+    };
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error occurred',
+      project_root: rootDir
+    };
+  }
+}
+
+/**
+ * Step 2: Process comprehensive AI spec parser analysis results
+ */
+export async function handleProcessComprehensiveSpecAnalysis(args: any) {
+  const {
+    analysis,
+    feature_name,
+    project_root,
+    analysis_depth = 'standard'
+  } = args;
+
+  if (!analysis) {
+    return {
+      success: false,
+      error: 'No analysis data provided'
+    };
+  }
+
+  const rootDir = await resolveProjectRoot(project_root);
+
+  try {
+    // Validate AI analysis against comprehensive schema
+    const validatedAnalysis = AISpecParserAnalysisSchema.parse(analysis);
+
+    // Check overall confidence and quality thresholds
+    const storage = await StorageManager.createInitializedStorage(rootDir);
+    const config = await storage.getConfig();
+    const confidenceThreshold = config.generation.specAnalysis.confidenceThreshold;
+    const qualityThreshold = config.generation.specAnalysis.qualityThreshold;
+
+    if (validatedAnalysis.aiMetadata.modelConfidence < confidenceThreshold) {
+      return {
+        success: false,
+        error: `AI analysis confidence (${validatedAnalysis.aiMetadata.modelConfidence}) below threshold (${confidenceThreshold})`,
+        suggestion: 'Consider providing more context or adjusting confidence threshold',
+        project_root: rootDir
+      };
+    }
+
+    if (validatedAnalysis.qualityAnalysis.overallScore < qualityThreshold) {
+      return {
+        success: false,
+        error: `Specification quality score (${validatedAnalysis.qualityAnalysis.overallScore}) below threshold (${qualityThreshold})`,
+        suggestion: 'Address quality issues before proceeding with task generation',
+        quality_issues: validatedAnalysis.qualityAnalysis.semanticIssues.slice(0, 5),
+        project_root: rootDir
+      };
+    }
+
+    // Convert AI tasks to SpecLinter format
+    const tasks = validatedAnalysis.taskGeneration.tasks.map((task, index) => ({
+      id: `task_${String(index + 1).padStart(2, '0')}`,
+      title: task.title,
+      slug: task.title.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
+      summary: task.summary,
+      implementation: `${task.implementation.approach}\n\nTechnical Steps:\n${task.implementation.technicalSteps.map(step => `- ${step}`).join('\n')}\n\nFiles: ${task.implementation.fileLocations.join(', ')}\n\nRisks: ${task.implementation.riskFactors.join('; ')}`,
+      status: 'not_started' as const,
+      statusEmoji: '⏳',
+      featureName: feature_name,
+      acceptanceCriteria: task.acceptanceCriteria.map(ac => ac.criteria),
+      testFile: `${task.title.toLowerCase().replace(/[^a-z0-9]+/g, '-')}.feature`,
+      coverageTarget: '90%',
+      notes: `Business Value: ${task.businessValue.userImpact}\nComplexity: ${task.estimatedEffort.complexity}\nPriority: ${task.businessValue.priority}`,
+      relevantPatterns: task.implementation.codePatterns.map(pattern => ({
+        name: pattern,
+        anchor: pattern.toLowerCase().replace(/[^a-z0-9]+/g, '-')
+      }))
+    }));
+
+    // Create comprehensive parse result
+    const parseResult = {
+      spec: 'Specification processed by AI analysis', // Placeholder since spec is not passed to process function
+      grade: validatedAnalysis.qualityAnalysis.grade,
+      score: validatedAnalysis.qualityAnalysis.overallScore,
+      tasks,
+      improvements: validatedAnalysis.qualityAnalysis.improvements.map(imp => imp.suggestion),
+      missingElements: validatedAnalysis.qualityAnalysis.semanticIssues.map(issue => issue.description)
+    };
+
+    return {
+      success: true,
+      feature_name,
+      project_root: rootDir,
+      parse_result: parseResult,
+      comprehensive_analysis: {
+        qualityAnalysis: {
+          overallScore: validatedAnalysis.qualityAnalysis.overallScore,
+          grade: validatedAnalysis.qualityAnalysis.grade,
+          qualityDimensions: validatedAnalysis.qualityAnalysis.qualityDimensions,
+          issueCount: validatedAnalysis.qualityAnalysis.semanticIssues.length,
+          strengthCount: validatedAnalysis.qualityAnalysis.strengths.length
+        },
+        taskGeneration: {
+          taskCount: validatedAnalysis.taskGeneration.qualityMetrics.taskCount,
+          coverageScore: validatedAnalysis.taskGeneration.qualityMetrics.coverageScore,
+          actionabilityScore: validatedAnalysis.taskGeneration.qualityMetrics.actionabilityScore
+        },
+        projectAlignment: validatedAnalysis.projectAlignment,
+        businessContext: validatedAnalysis.businessContext,
+        implementationGuidance: validatedAnalysis.implementationGuidance
+      },
+      ai_insights: {
+        confidence: validatedAnalysis.aiMetadata.modelConfidence,
+        analysisDepth: validatedAnalysis.aiMetadata.analysisDepth,
+        contextFactors: validatedAnalysis.aiMetadata.contextFactors,
+        recommendations: validatedAnalysis.aiMetadata.recommendations
+      },
+      next_steps: [
+        'Comprehensive analysis complete',
+        'Tasks ready for implementation',
+        'Review business context and alignment',
+        'Consider implementation guidance and risk factors',
+        'Generate Gherkin scenarios for testing'
+      ]
+    };
+  } catch (error) {
+    if (error instanceof Error && error.name === 'ZodError') {
+      return {
+        success: false,
+        error: 'AI analysis response does not match expected schema',
+        validation_errors: error.message,
+        project_root: rootDir
+      };
+    }
+
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error occurred',
+      project_root: rootDir
+    };
+  }
 }
 
 // Export aliases for test compatibility

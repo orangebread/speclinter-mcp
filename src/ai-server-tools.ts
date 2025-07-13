@@ -10,7 +10,13 @@ import {
   handleValidateImplementationPrepare,
   handleValidateImplementationProcess,
   handleGenerateGherkinPrepare,
-  handleProcessGherkinAnalysis
+  handleProcessGherkinAnalysis,
+  handleAnalyzeSpecQuality,
+  handleProcessSpecQualityAnalysis,
+  handleGenerateTasksFromSpec,
+  handleProcessTaskGeneration,
+  handleAnalyzeSpecComprehensive,
+  handleProcessComprehensiveSpecAnalysis
 } from './ai-tools.js';
 
 /**
@@ -199,6 +205,107 @@ export function registerAITools(server: McpServer) {
       }
     },
     async (args) => handleToolExecution(handleProcessGherkinAnalysis, args)
+  );
+
+  // AI-powered Spec Quality Analysis (Step 1)
+  server.registerTool(
+    'speclinter_analyze_spec_quality_prepare',
+    {
+      title: 'Prepare AI Spec Quality Analysis',
+      description: 'Prepare AI-powered specification quality analysis with semantic understanding',
+      inputSchema: {
+        spec: z.string().describe('The specification text to analyze'),
+        feature_name: z.string().describe('Name for the feature'),
+        context: z.string().optional().describe('Additional context about the specification'),
+        project_root: z.string().optional().describe('Root directory of the project (defaults to auto-detected project root)'),
+        analysis_depth: z.enum(['quick', 'standard', 'comprehensive']).optional().default('standard').describe('Depth of quality analysis to perform')
+      }
+    },
+    async (args) => handleToolExecution(handleAnalyzeSpecQuality, args)
+  );
+
+  // AI-powered Spec Quality Analysis (Step 2)
+  server.registerTool(
+    'speclinter_analyze_spec_quality_process',
+    {
+      title: 'Process AI Spec Quality Analysis',
+      description: 'Process AI quality analysis results and provide comprehensive quality assessment',
+      inputSchema: {
+        analysis: z.object({}).passthrough().describe('AI analysis results matching AISpecQualityAnalysisSchema'),
+        feature_name: z.string().describe('Name of the feature'),
+        project_root: z.string().optional().describe('Root directory of the project'),
+        analysis_depth: z.enum(['quick', 'standard', 'comprehensive']).optional().default('standard').describe('Depth of analysis performed')
+      }
+    },
+    async (args) => handleToolExecution(handleProcessSpecQualityAnalysis, args)
+  );
+
+  // AI-powered Task Generation (Step 1)
+  server.registerTool(
+    'speclinter_generate_tasks_prepare',
+    {
+      title: 'Prepare AI Task Generation',
+      description: 'Prepare AI-powered task generation from specification with comprehensive implementation guidance',
+      inputSchema: {
+        spec: z.string().describe('The specification text to break down into tasks'),
+        feature_name: z.string().describe('Name for the feature'),
+        quality_analysis: z.object({}).passthrough().optional().describe('Previous quality analysis results'),
+        context: z.string().optional().describe('Additional context about the specification'),
+        project_root: z.string().optional().describe('Root directory of the project (defaults to auto-detected project root)'),
+        task_complexity: z.enum(['basic', 'standard', 'comprehensive']).optional().default('standard').describe('Complexity level for task generation')
+      }
+    },
+    async (args) => handleToolExecution(handleGenerateTasksFromSpec, args)
+  );
+
+  // AI-powered Task Generation (Step 2)
+  server.registerTool(
+    'speclinter_generate_tasks_process',
+    {
+      title: 'Process AI Task Generation',
+      description: 'Process AI task generation results and create comprehensive task breakdown',
+      inputSchema: {
+        analysis: z.object({}).passthrough().describe('AI analysis results matching AITaskGenerationSchema'),
+        feature_name: z.string().describe('Name of the feature'),
+        project_root: z.string().optional().describe('Root directory of the project'),
+        task_complexity: z.enum(['basic', 'standard', 'comprehensive']).optional().default('standard').describe('Complexity level used for generation')
+      }
+    },
+    async (args) => handleToolExecution(handleProcessTaskGeneration, args)
+  );
+
+  // Comprehensive AI Spec Parser Analysis (Step 1)
+  server.registerTool(
+    'speclinter_analyze_spec_comprehensive_prepare',
+    {
+      title: 'Prepare Comprehensive AI Spec Analysis',
+      description: 'Prepare comprehensive AI-powered specification analysis combining quality assessment and task generation',
+      inputSchema: {
+        spec: z.string().describe('The specification text to analyze comprehensively'),
+        feature_name: z.string().describe('Name for the feature'),
+        context: z.string().optional().describe('Additional context about the specification'),
+        project_root: z.string().optional().describe('Root directory of the project (defaults to auto-detected project root)'),
+        analysis_depth: z.enum(['quick', 'standard', 'comprehensive']).optional().default('standard').describe('Depth of comprehensive analysis to perform'),
+        focus_areas: z.array(z.string()).optional().default([]).describe('Specific areas to focus analysis on')
+      }
+    },
+    async (args) => handleToolExecution(handleAnalyzeSpecComprehensive, args)
+  );
+
+  // Comprehensive AI Spec Parser Analysis (Step 2)
+  server.registerTool(
+    'speclinter_analyze_spec_comprehensive_process',
+    {
+      title: 'Process Comprehensive AI Spec Analysis',
+      description: 'Process comprehensive AI analysis results and provide complete specification breakdown',
+      inputSchema: {
+        analysis: z.object({}).passthrough().describe('AI analysis results matching AISpecParserAnalysisSchema'),
+        feature_name: z.string().describe('Name of the feature'),
+        project_root: z.string().optional().describe('Root directory of the project'),
+        analysis_depth: z.enum(['quick', 'standard', 'comprehensive']).optional().default('standard').describe('Depth of analysis performed')
+      }
+    },
+    async (args) => handleToolExecution(handleProcessComprehensiveSpecAnalysis, args)
   );
 }
 
