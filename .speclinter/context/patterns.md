@@ -62,20 +62,70 @@ server.registerTool(
 );
 ```
 
-### Two-Step AI Tool Pattern
-**Confidence**: 90%
-**Usage**: Core pattern for AI-leveraged operations
-**Locations**: `src/ai-tools.ts:338-429`
+### Unified AI Tool Pattern
+**Confidence**: 95%
+**Usage**: Single-step AI-leveraged operations with internal prepare/process coordination
+**Locations**: `src/unified-ai-tools.ts`
 
 ```typescript
-// Step 1: Prepare - Collect data and generate AI prompt
+// Unified Tool - Handles prepare→AI→process internally
+export async function handleAnalyzeCodebaseUnified(args: any): Promise<UnifiedToolResponse> {
+  try {
+    // Validate project context
+    const validation = await validateProjectContext(args.project_root);
+    if (!validation.success) {
+      return validation;
+    }
+
+    // If analysis is provided, skip prepare step (advanced usage)
+    if (args.analysis) {
+      return await handleProcessCodebaseAnalysis(args);
+    }
+
+    // Step 1: Prepare (internal)
+    const prepareResult = await handleAnalyzeCodebase(args);
+    if (!prepareResult.success) {
+      return {
+        ...prepareResult,
+        internal_step: 'prepare',
+        debug_info: 'Failed during codebase analysis preparation'
+      };
+    }
+
+    // Step 2: AI Analysis (simulated for now)
+    const aiAnalysis = generateSimulatedAnalysis(prepareResult);
+
+    // Step 3: Process (internal)
+    const processResult = await handleProcessCodebaseAnalysis({
+      ...args,
+      analysis: aiAnalysis
+    });
+
+    return {
+      ...processResult,
+      internal_step: 'unified_operation',
+      ai_analysis_simulated: true
+    };
+  } catch (error) {
+    return handleUnifiedError(error, 'unified_operation');
+  }
+}
+```
+
+### Internal Two-Step AI Pattern (Legacy)
+**Confidence**: 90%
+**Usage**: Internal utilities for prepare/process coordination
+**Locations**: `src/ai-tools.ts` (used internally by unified tools)
+
+```typescript
+// Internal Step 1: Prepare - Collect data and generate AI prompt
 export async function handleAnalyzeCodebase(args: any) {
   // Collect project data
   const files = await scanCodebaseFiles(rootDir);
-  
+
   // Generate comprehensive AI prompt
   const analysisPrompt = `Analyze the provided codebase...`;
-  
+
   return {
     success: true,
     action: 'ai_analysis_required',
@@ -85,16 +135,16 @@ export async function handleAnalyzeCodebase(args: any) {
   };
 }
 
-// Step 2: Process - Validate AI response and update system
+// Internal Step 2: Process - Validate AI response and update system
 export async function handleProcessAnalysis(args: any) {
   const { analysis } = args;
-  
+
   // Validate AI response against schema
   const validatedAnalysis = validateAnalysisSchema(analysis);
-  
+
   // Update system with validated results
   await updateContextFiles(validatedAnalysis);
-  
+
   return {
     success: true,
     files_updated: ['project.md', 'patterns.md', 'architecture.md']

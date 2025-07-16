@@ -30,7 +30,6 @@
     "build": "tsc",
     "dev": "tsx watch src/server.ts",
     "test": "vitest",
-    "lint": "eslint src",
     "start": "node dist/server.js",
     "postbuild": "chmod +x dist/cli.js"
   },

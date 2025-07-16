@@ -23,29 +23,33 @@ To use SpecLinter as an MCP server, add this to your AI IDE's MCP configuration:
 ### Project Setup
 - `speclinter_init_project` - Initialize SpecLinter in a project with smart defaults
 
-### Codebase Analysis  
-- `speclinter_analyze_codebase_prepare` - Comprehensive codebase analysis for project documentation
-- `speclinter_analyze_codebase_process` - Process AI analysis results and update context files
+### Codebase Analysis
+- `speclinter_analyze_codebase` - Comprehensive codebase analysis that generates rich project documentation and context files
 
 ### Specification Parsing
-- `speclinter_parse_spec_prepare` - Prepare specification for AI analysis
-- `speclinter_parse_spec_process` - Process AI analysis and create structured tasks
+- `speclinter_parse_spec` - Process specification and create SpecLinter tasks with AI analysis
 
 ### Similarity Detection
-- `speclinter_find_similar_prepare` - Prepare similarity analysis against existing features
-- `speclinter_find_similar_process` - Process AI similarity analysis results
+- `speclinter_find_similar` - Find similar features using AI-powered semantic analysis
 
 ### Task Management
 - `speclinter_get_task_status` - Get current status of feature tasks
 - `speclinter_update_task_status` - Update task status (completed, in-progress, blocked)
 
 ### Implementation Validation
-- `speclinter_validate_implementation_prepare` - Scan codebase for feature implementation
-- `speclinter_validate_implementation_process` - Process AI validation analysis results
+- `speclinter_validate_implementation` - Scan codebase for feature implementation and provide comprehensive assessment
 
 ### AI-Powered Gherkin Generation
-- `speclinter_generate_gherkin_prepare` - Prepare AI-powered Gherkin scenario generation
-- `speclinter_generate_gherkin_process` - Process AI analysis and generate comprehensive scenario files
+- `speclinter_generate_gherkin` - Generate comprehensive Gherkin scenarios for specific tasks with AI analysis
+
+### Specification Quality Analysis
+- `speclinter_analyze_spec_quality` - AI-powered specification quality analysis with semantic understanding
+
+### Task Generation
+- `speclinter_generate_tasks` - Generate comprehensive task breakdown from specifications with AI guidance
+
+### Comprehensive Specification Analysis
+- `speclinter_analyze_spec_comprehensive` - Complete specification analysis combining quality assessment and task generation
 
 ## Usage Examples
 
@@ -59,6 +63,16 @@ To use SpecLinter as an MCP server, add this to your AI IDE's MCP configuration:
 "Parse this spec: Create a user authentication system with email verification"
 ```
 
+### Analyze Codebase
+```
+"Analyze my codebase and generate project documentation"
+```
+
+### Find Similar Features
+```
+"Check if this user profile feature is similar to existing features"
+```
+
 ### Check Task Status
 ```
 "Show me the status of my authentication-system tasks"
@@ -67,6 +81,16 @@ To use SpecLinter as an MCP server, add this to your AI IDE's MCP configuration:
 ### Validate Implementation
 ```
 "Validate the implementation of my authentication feature"
+```
+
+### Generate Gherkin Scenarios
+```
+"Generate Gherkin scenarios for my login task"
+```
+
+### Analyze Specification Quality
+```
+"Analyze the quality of this specification and provide improvement suggestions"
 ```
 
 ## Key Features

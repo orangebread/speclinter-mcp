@@ -32,12 +32,4 @@ export class ContextUpdater {
 
     return updatedFiles;
   }
-
-  // All legacy methods removed in Option A:
-  // - cleanupGenericTemplates (eliminated)
-  // - generateAIStackSection (AI handles this)
-  // - generateAIPatternSection (AI handles this)
-  // - generateProjectSpecificContent (AI handles this)
-
-
 }

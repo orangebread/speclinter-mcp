@@ -12,17 +12,17 @@ export {
   handleInitProject
 } from './tools.js';
 
-// AI-leveraged tools (use via MCP server)
+// Unified AI tools (use via MCP server)
 export {
-  handleAnalyzeCodebase,
-  handleProcessCodebaseAnalysis,
-  handleParseSpecAI,
-  handleProcessSpecAnalysisAI,
-  handleFindSimilarAI,
-  handleProcessSimilarityAnalysisAI,
-  handleValidateImplementationPrepare,
-  handleValidateImplementationProcess
-} from './ai-tools.js';
+  handleAnalyzeCodebaseUnified,
+  handleParseSpecUnified,
+  handleFindSimilarUnified,
+  handleValidateImplementationUnified,
+  handleGenerateGherkinUnified,
+  handleAnalyzeSpecQualityUnified,
+  handleGenerateTasksUnified,
+  handleAnalyzeSpecComprehensiveUnified
+} from './unified-ai-tools.js';
 
 // AI schemas and types
 export * from './types/ai-schemas.js';

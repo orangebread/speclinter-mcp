@@ -16,6 +16,8 @@ import {
   AIPromptTemplates
 } from './types/ai-schemas.js';
 import { resolveProjectRoot } from './tools.js';
+import { createErrorResponse, validateAIAnalysis, validateConfigThresholds } from './utils/validation.js';
+import { ConfigManager } from './utils/config-manager.js';
 
 // Add missing method to storage for AI tools
 declare module './core/storage.js' {
@@ -836,18 +838,8 @@ export async function handleProcessSimilarityAnalysisAI(args: any) {
       ]
     };
   } catch (error) {
-    if (error instanceof Error && error.name === 'ZodError') {
-      return {
-        success: false,
-        error: 'AI analysis response does not match expected schema',
-        validation_errors: error.message,
-        project_root: rootDir
-      };
-    }
-
     return {
-      success: false,
-      error: error instanceof Error ? error.message : 'Unknown error occurred',
+      ...createErrorResponse(error, 'process_spec_analysis', 'ai_analysis'),
       project_root: rootDir
     };
   }
@@ -861,10 +853,11 @@ export async function handleValidateImplementationPrepare(args: any) {
   const { feature_name, project_root } = args;
 
   if (!feature_name) {
-    return {
-      success: false,
-      error: 'Feature name is required'
-    };
+    return createErrorResponse(
+      new Error('Feature name is required'),
+      'parameter_validation',
+      'missing_required_parameter'
+    );
   }
 
   const rootDir = await resolveProjectRoot(project_root);
@@ -1830,17 +1823,22 @@ export async function handleProcessSpecQualityAnalysis(args: any) {
     // Validate AI analysis against schema
     const validatedAnalysis = AISpecQualityAnalysisSchema.parse(analysis);
 
-    // Check if analysis meets confidence threshold
-    const storage = await StorageManager.createInitializedStorage(rootDir);
-    const config = await storage.getConfig();
-    const confidenceThreshold = config.generation.specAnalysis.confidenceThreshold;
+    // Check if analysis meets confidence threshold using standardized config management
+    const confidenceValidation = await ConfigManager.validateConfidenceThreshold(
+      validatedAnalysis.aiInsights.confidence,
+      rootDir,
+      'spec quality analysis'
+    );
 
-    if (validatedAnalysis.aiInsights.confidence < confidenceThreshold) {
+    if (!confidenceValidation.success) {
       return {
-        success: false,
-        error: `AI analysis confidence (${validatedAnalysis.aiInsights.confidence}) below threshold (${confidenceThreshold})`,
-        suggestion: 'Consider providing more context or adjusting confidence threshold',
-        project_root: rootDir
+        ...createErrorResponse(
+          new Error(confidenceValidation.error || 'Confidence threshold validation failed'),
+          'confidence_validation',
+          'configuration'
+        ),
+        project_root: rootDir,
+        suggestions: confidenceValidation.suggestions
       };
     }
 
@@ -1999,17 +1997,22 @@ export async function handleProcessTaskGeneration(args: any) {
     // Validate AI analysis against schema
     const validatedAnalysis = AITaskGenerationSchema.parse(analysis);
 
-    // Check quality metrics
-    const storage = await StorageManager.createInitializedStorage(rootDir);
-    const config = await storage.getConfig();
-    const qualityThreshold = config.generation.specAnalysis.qualityThreshold;
+    // Check quality metrics using standardized config management
+    const qualityValidation = await ConfigManager.validateQualityThreshold(
+      validatedAnalysis.qualityMetrics.coverageScore,
+      rootDir,
+      'task generation'
+    );
 
-    if (validatedAnalysis.qualityMetrics.coverageScore < qualityThreshold) {
+    if (!qualityValidation.success) {
       return {
-        success: false,
-        error: `Task coverage score (${validatedAnalysis.qualityMetrics.coverageScore}) below threshold (${qualityThreshold})`,
-        suggestion: 'Consider providing more detailed specification or adjusting quality threshold',
-        project_root: rootDir
+        ...createErrorResponse(
+          new Error(qualityValidation.error || 'Quality threshold validation failed'),
+          'quality_validation',
+          'configuration'
+        ),
+        project_root: rootDir,
+        suggestions: qualityValidation.suggestions
       };
     }
 
@@ -2182,28 +2185,43 @@ export async function handleProcessComprehensiveSpecAnalysis(args: any) {
     // Validate AI analysis against comprehensive schema
     const validatedAnalysis = AISpecParserAnalysisSchema.parse(analysis);
 
-    // Check overall confidence and quality thresholds
-    const storage = await StorageManager.createInitializedStorage(rootDir);
-    const config = await storage.getConfig();
-    const confidenceThreshold = config.generation.specAnalysis.confidenceThreshold;
-    const qualityThreshold = config.generation.specAnalysis.qualityThreshold;
+    // Check overall confidence and quality thresholds using standardized config management
+    const confidenceValidation = await ConfigManager.validateConfidenceThreshold(
+      validatedAnalysis.aiMetadata.modelConfidence,
+      rootDir,
+      'comprehensive spec analysis'
+    );
 
-    if (validatedAnalysis.aiMetadata.modelConfidence < confidenceThreshold) {
+    if (!confidenceValidation.success) {
       return {
-        success: false,
-        error: `AI analysis confidence (${validatedAnalysis.aiMetadata.modelConfidence}) below threshold (${confidenceThreshold})`,
-        suggestion: 'Consider providing more context or adjusting confidence threshold',
-        project_root: rootDir
+        ...createErrorResponse(
+          new Error(confidenceValidation.error || 'Confidence threshold validation failed'),
+          'confidence_validation',
+          'configuration'
+        ),
+        project_root: rootDir,
+        suggestions: confidenceValidation.suggestions
       };
     }
 
-    if (validatedAnalysis.qualityAnalysis.overallScore < qualityThreshold) {
+    const qualityValidation = await ConfigManager.validateQualityThreshold(
+      validatedAnalysis.qualityAnalysis.overallScore,
+      rootDir,
+      'comprehensive spec analysis'
+    );
+
+    if (!qualityValidation.success) {
       return {
-        success: false,
-        error: `Specification quality score (${validatedAnalysis.qualityAnalysis.overallScore}) below threshold (${qualityThreshold})`,
-        suggestion: 'Address quality issues before proceeding with task generation',
-        quality_issues: validatedAnalysis.qualityAnalysis.semanticIssues.slice(0, 5),
-        project_root: rootDir
+        ...createErrorResponse(
+          new Error(qualityValidation.error || 'Quality threshold validation failed'),
+          'quality_validation',
+          'configuration'
+        ),
+        project_root: rootDir,
+        suggestions: qualityValidation.suggestions,
+        data: {
+          quality_issues: validatedAnalysis.qualityAnalysis.semanticIssues.slice(0, 5)
+        }
       };
     }
 
