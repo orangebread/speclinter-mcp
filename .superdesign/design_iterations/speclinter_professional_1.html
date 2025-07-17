@@ -1,0 +1,728 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Speclinter - AI-Powered Specification Analysis</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="theme_slate_gold.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            background-color: var(--background);
+            color: var(--foreground);
+            font-family: var(--font-sans);
+            letter-spacing: var(--tracking-normal);
+            line-height: 1.6;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        /* Subtle noise texture overlay */
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background-image: 
+                radial-gradient(circle at 20% 50%, oklch(from var(--primary) l c h / 0.03), transparent 50%),
+                radial-gradient(circle at 80% 80%, oklch(from var(--accent) l c h / 0.02), transparent 50%);
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        /* Main container with proper z-index */
+        .main-container {
+            position: relative;
+            z-index: 2;
+        }
+
+        /* Premium card styles */
+        .premium-card {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-sm);
+            overflow: hidden;
+            transition: all 0.2s ease;
+        }
+
+        .premium-card:hover {
+            box-shadow: var(--shadow-md);
+            border-color: oklch(from var(--border) calc(l + 0.05) c h);
+        }
+
+        /* Premium button styles */
+        .btn-primary {
+            background: var(--primary);
+            color: var(--primary-foreground);
+            padding: 0.5rem 1.125rem;
+            border-radius: var(--radius);
+            font-weight: 500;
+            font-size: 0.875rem;
+            transition: all 0.2s ease;
+            box-shadow: var(--shadow-xs);
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-1px);
+            box-shadow: var(--shadow-sm);
+            background: oklch(from var(--primary) calc(l + 0.03) c h);
+        }
+
+        .btn-primary:active {
+            transform: translateY(0);
+        }
+
+        /* Quality grade badges */
+        .grade-badge {
+            padding: 0.25rem 0.625rem;
+            border-radius: var(--radius-sm);
+            font-weight: 600;
+            font-family: var(--font-mono);
+            font-size: 0.75rem;
+            letter-spacing: 0.025em;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.25rem;
+        }
+
+        .grade-a-plus {
+            background: oklch(0.45 0.18 145);
+            color: oklch(0.95 0 0);
+        }
+
+        .grade-a {
+            background: oklch(0.50 0.16 155);
+            color: oklch(0.95 0 0);
+        }
+
+        .grade-b {
+            background: var(--primary);
+            color: var(--primary-foreground);
+        }
+
+        .grade-c {
+            background: var(--accent);
+            color: var(--accent-foreground);
+        }
+
+        .grade-d {
+            background: var(--destructive);
+            color: var(--destructive-foreground);
+        }
+
+        /* Status indicators */
+        .status-indicator {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.375rem;
+            font-size: 0.875rem;
+            font-weight: 500;
+        }
+
+        .status-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            position: relative;
+        }
+
+        .status-dot::after {
+            content: '';
+            position: absolute;
+            inset: -3px;
+            border-radius: 50%;
+            background: currentColor;
+            opacity: 0.2;
+        }
+
+        .status-verified { color: oklch(0.65 0.18 145); }
+        .status-modified { color: var(--accent); }
+        .status-pending { color: var(--muted-foreground); }
+
+        /* Table styles */
+        .data-table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+        }
+
+        .data-table thead th {
+            padding: 0.875rem 1.25rem;
+            text-align: left;
+            font-weight: 500;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--muted-foreground);
+            border-bottom: 1px solid var(--border);
+            background: oklch(from var(--background) calc(l + 0.02) c h);
+        }
+
+        .data-table tbody td {
+            padding: 1rem 1.25rem;
+            border-bottom: 1px solid oklch(from var(--border) l c h / 0.5);
+        }
+
+        .data-table tbody tr {
+            transition: all 0.15s ease;
+            cursor: pointer;
+        }
+
+        .data-table tbody tr:hover {
+            background: oklch(from var(--muted) l c h / 0.3);
+        }
+
+        .data-table tbody tr:last-child td {
+            border-bottom: none;
+        }
+
+        /* Progress bar */
+        .progress-container {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .progress-bar {
+            height: 4px;
+            background: var(--muted);
+            border-radius: 2px;
+            overflow: hidden;
+            width: 100px;
+            position: relative;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: var(--primary);
+            border-radius: 2px;
+            transition: width 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .progress-fill::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(90deg, transparent, oklch(from var(--primary) calc(l + 0.1) c h / 0.3), transparent);
+            animation: shimmer 2s infinite;
+        }
+
+        @keyframes shimmer {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+        }
+
+        /* Feature name with icon */
+        .feature-item {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .feature-icon {
+            width: 36px;
+            height: 36px;
+            border-radius: var(--radius);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.125rem;
+            background: var(--muted);
+        }
+
+        .feature-name {
+            font-weight: 600;
+            font-size: 0.9375rem;
+            color: var(--foreground);
+        }
+
+        /* Navigation */
+        .nav-link {
+            color: var(--muted-foreground);
+            text-decoration: none;
+            font-weight: 500;
+            font-size: 0.875rem;
+            transition: color 0.2s ease;
+            position: relative;
+            padding: 0.5rem 0;
+        }
+
+        .nav-link:hover {
+            color: var(--foreground);
+        }
+
+        .nav-link.active {
+            color: var(--foreground);
+        }
+
+        .nav-link.active::after {
+            content: '';
+            position: absolute;
+            bottom: -1px;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: var(--primary);
+            border-radius: 1px;
+        }
+
+        /* Search input */
+        .search-input {
+            background: var(--input);
+            border: 1px solid var(--border);
+            padding: 0.5rem 1rem 0.5rem 2.5rem;
+            border-radius: var(--radius);
+            font-size: 0.875rem;
+            color: var(--foreground);
+            transition: all 0.2s ease;
+            width: 280px;
+        }
+
+        .search-input:focus {
+            outline: none;
+            border-color: var(--ring);
+            box-shadow: 0 0 0 3px oklch(from var(--ring) l c h / 0.1);
+            background: var(--card);
+        }
+
+        .search-wrapper {
+            position: relative;
+        }
+
+        .search-icon {
+            position: absolute;
+            left: 0.75rem;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--muted-foreground);
+            pointer-events: none;
+        }
+
+        /* Stats cards */
+        .stat-card {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-lg);
+            padding: 1.25rem;
+            transition: all 0.2s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 80px;
+            height: 80px;
+            background: radial-gradient(circle, var(--primary), transparent);
+            opacity: 0.05;
+            transform: translate(20px, -20px);
+        }
+
+        .stat-card:hover {
+            border-color: oklch(from var(--border) calc(l + 0.05) c h);
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-md);
+        }
+
+        .stat-value {
+            font-size: 1.875rem;
+            font-weight: 700;
+            line-height: 1;
+            margin-bottom: 0.25rem;
+            font-variant-numeric: tabular-nums;
+        }
+
+        .stat-label {
+            font-size: 0.8125rem;
+            color: var(--muted-foreground);
+            font-weight: 500;
+        }
+
+        .stat-trend {
+            font-size: 0.75rem;
+            font-weight: 600;
+            margin-top: 0.5rem;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.25rem;
+        }
+
+        .trend-up { color: oklch(0.65 0.18 145); }
+        .trend-down { color: var(--destructive); }
+
+        /* Logo */
+        .logo {
+            font-size: 1.25rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--primary), var(--accent));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        /* Animations */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .fade-in {
+            opacity: 0;
+            animation: fadeIn 0.5s ease forwards;
+        }
+
+        .stagger-1 { animation-delay: 0.1s; }
+        .stagger-2 { animation-delay: 0.2s; }
+        .stagger-3 { animation-delay: 0.3s; }
+        .stagger-4 { animation-delay: 0.4s; }
+        .stagger-5 { animation-delay: 0.5s; }
+
+        /* Header blur effect */
+        .header-blur {
+            backdrop-filter: blur(8px);
+            background: oklch(from var(--background) l c h / 0.8);
+        }
+
+        /* Icon button */
+        .icon-btn {
+            padding: 0.5rem;
+            border-radius: var(--radius);
+            transition: all 0.15s ease;
+            color: var(--muted-foreground);
+        }
+
+        .icon-btn:hover {
+            background: var(--muted);
+            color: var(--foreground);
+        }
+    </style>
+</head>
+<body>
+    <div class="main-container min-h-screen">
+        <!-- Header -->
+        <header class="header-blur border-b border-border/50 sticky top-0 z-50">
+            <div class="max-w-7xl mx-auto px-6 py-4">
+                <div class="flex justify-between items-center">
+                    <div class="flex items-center gap-10">
+                        <h1 class="logo">speclinter</h1>
+                        <nav class="flex gap-1">
+                            <a href="#" class="nav-link active">Dashboard</a>
+                            <a href="#" class="nav-link" style="margin-left: 1.5rem;">Features</a>
+                            <a href="#" class="nav-link" style="margin-left: 1.5rem;">Reports</a>
+                            <a href="#" class="nav-link" style="margin-left: 1.5rem;">Documentation</a>
+                        </nav>
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <button class="icon-btn">
+                            <i data-lucide="bell" class="w-4 h-4"></i>
+                        </button>
+                        <button class="btn-primary">
+                            <i data-lucide="plus" class="w-4 h-4"></i>
+                            New Specification
+                        </button>
+                        <div class="w-9 h-9 rounded-full bg-gradient-to-br from-slate-600 to-slate-800 flex items-center justify-center text-white font-medium text-sm ml-2">
+                            JD
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="max-w-7xl mx-auto px-6 py-8">
+            <!-- Stats Overview -->
+            <div class="grid grid-cols-4 gap-4 mb-8">
+                <div class="stat-card fade-in">
+                    <div class="stat-value">24</div>
+                    <div class="stat-label">Active Features</div>
+                    <div class="stat-trend trend-up">
+                        <i data-lucide="trending-up" class="w-3 h-3"></i>
+                        +3 this week
+                    </div>
+                </div>
+                <div class="stat-card fade-in stagger-1">
+                    <div class="stat-value" style="color: var(--primary);">89%</div>
+                    <div class="stat-label">Average Quality Score</div>
+                    <div class="stat-trend trend-up">
+                        <i data-lucide="trending-up" class="w-3 h-3"></i>
+                        +5% improvement
+                    </div>
+                </div>
+                <div class="stat-card fade-in stagger-2">
+                    <div class="stat-value" style="color: var(--accent);">156</div>
+                    <div class="stat-label">Tasks Generated</div>
+                    <div class="stat-trend trend-up">
+                        <i data-lucide="trending-up" class="w-3 h-3"></i>
+                        +12 today
+                    </div>
+                </div>
+                <div class="stat-card fade-in stagger-3">
+                    <div class="stat-value">19</div>
+                    <div class="stat-label">Verified Implementations</div>
+                    <div class="stat-trend" style="color: var(--muted-foreground);">
+                        <i data-lucide="minus" class="w-3 h-3"></i>
+                        No change
+                    </div>
+                </div>
+            </div>
+
+            <!-- Features Section -->
+            <div class="flex justify-between items-center mb-6 fade-in stagger-4">
+                <div>
+                    <h2 class="text-xl font-semibold mb-1">Feature Specifications</h2>
+                    <p class="text-sm text-muted-foreground">Track and manage your AI-analyzed specifications</p>
+                </div>
+                <div class="flex gap-2 items-center">
+                    <button class="icon-btn">
+                        <i data-lucide="filter" class="w-4 h-4"></i>
+                    </button>
+                    <button class="icon-btn">
+                        <i data-lucide="layout-grid" class="w-4 h-4"></i>
+                    </button>
+                    <div class="search-wrapper">
+                        <i data-lucide="search" class="w-4 h-4 search-icon"></i>
+                        <input type="text" placeholder="Search features..." class="search-input">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Features Table -->
+            <div class="premium-card fade-in stagger-5">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th style="width: 35%">Feature</th>
+                            <th>Quality</th>
+                            <th>Progress</th>
+                            <th>Implementation</th>
+                            <th>Status</th>
+                            <th style="width: 40px"></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>
+                                <div class="feature-item">
+                                    <div class="feature-icon">
+                                        🔐
+                                    </div>
+                                    <div>
+                                        <div class="feature-name">User Authentication System</div>
+                                        <div class="text-xs text-muted-foreground">REQ-001 • Updated 2 hours ago</div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td>
+                                <span class="grade-badge grade-a-plus">A+ 98</span>
+                            </td>
+                            <td>
+                                <div class="progress-container">
+                                    <div class="progress-bar">
+                                        <div class="progress-fill" style="width: 92%"></div>
+                                    </div>
+                                    <span class="text-sm text-muted-foreground">11/12</span>
+                                </div>
+                            </td>
+                            <td>
+                                <div class="status-indicator status-verified">
+                                    <span class="status-dot"></span>
+                                    Verified
+                                </div>
+                            </td>
+                            <td>
+                                <span class="text-sm font-medium" style="color: var(--primary);">Completed</span>
+                            </td>
+                            <td>
+                                <button class="icon-btn">
+                                    <i data-lucide="more-horizontal" class="w-4 h-4"></i>
+                                </button>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <div class="feature-item">
+                                    <div class="feature-icon">
+                                        💳
+                                    </div>
+                                    <div>
+                                        <div class="feature-name">Payment Processing Gateway</div>
+                                        <div class="text-xs text-muted-foreground">REQ-002 • Updated 5 hours ago</div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td>
+                                <span class="grade-badge grade-b">B 85</span>
+                            </td>
+                            <td>
+                                <div class="progress-container">
+                                    <div class="progress-bar">
+                                        <div class="progress-fill" style="width: 58%"></div>
+                                    </div>
+                                    <span class="text-sm text-muted-foreground">7/12</span>
+                                </div>
+                            </td>
+                            <td>
+                                <div class="status-indicator status-modified">
+                                    <span class="status-dot"></span>
+                                    Modified
+                                </div>
+                            </td>
+                            <td>
+                                <span class="text-sm font-medium" style="color: var(--accent);">In Progress</span>
+                            </td>
+                            <td>
+                                <button class="icon-btn">
+                                    <i data-lucide="more-horizontal" class="w-4 h-4"></i>
+                                </button>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <div class="feature-item">
+                                    <div class="feature-icon">
+                                        📊
+                                    </div>
+                                    <div>
+                                        <div class="feature-name">Analytics Dashboard</div>
+                                        <div class="text-xs text-muted-foreground">REQ-003 • Updated yesterday</div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td>
+                                <span class="grade-badge grade-a">A 91</span>
+                            </td>
+                            <td>
+                                <div class="progress-container">
+                                    <div class="progress-bar">
+                                        <div class="progress-fill" style="width: 75%"></div>
+                                    </div>
+                                    <span class="text-sm text-muted-foreground">9/12</span>
+                                </div>
+                            </td>
+                            <td>
+                                <div class="status-indicator status-verified">
+                                    <span class="status-dot"></span>
+                                    Verified
+                                </div>
+                            </td>
+                            <td>
+                                <span class="text-sm font-medium" style="color: var(--accent);">In Progress</span>
+                            </td>
+                            <td>
+                                <button class="icon-btn">
+                                    <i data-lucide="more-horizontal" class="w-4 h-4"></i>
+                                </button>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <div class="feature-item">
+                                    <div class="feature-icon">
+                                        🔔
+                                    </div>
+                                    <div>
+                                        <div class="feature-name">Real-time Notification Service</div>
+                                        <div class="text-xs text-muted-foreground">REQ-004 • Updated 3 days ago</div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td>
+                                <span class="grade-badge grade-c">C 72</span>
+                            </td>
+                            <td>
+                                <div class="progress-container">
+                                    <div class="progress-bar">
+                                        <div class="progress-fill" style="width: 25%"></div>
+                                    </div>
+                                    <span class="text-sm text-muted-foreground">3/12</span>
+                                </div>
+                            </td>
+                            <td>
+                                <div class="status-indicator status-pending">
+                                    <span class="status-dot"></span>
+                                    Pending
+                                </div>
+                            </td>
+                            <td>
+                                <span class="text-sm font-medium" style="color: var(--muted-foreground);">Planning</span>
+                            </td>
+                            <td>
+                                <button class="icon-btn">
+                                    <i data-lucide="more-horizontal" class="w-4 h-4"></i>
+                                </button>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <div class="feature-item">
+                                    <div class="feature-icon">
+                                        🔍
+                                    </div>
+                                    <div>
+                                        <div class="feature-name">Advanced Search Engine</div>
+                                        <div class="text-xs text-muted-foreground">REQ-005 • Updated 1 week ago</div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td>
+                                <span class="grade-badge grade-d">D 48</span>
+                            </td>
+                            <td>
+                                <div class="progress-container">
+                                    <div class="progress-bar">
+                                        <div class="progress-fill" style="width: 0%"></div>
+                                    </div>
+                                    <span class="text-sm text-muted-foreground">0/10</span>
+                                </div>
+                            </td>
+                            <td>
+                                <div class="status-indicator status-pending">
+                                    <span class="status-dot"></span>
+                                    Not Started
+                                </div>
+                            </td>
+                            <td>
+                                <span class="text-sm font-medium" style="color: var(--destructive);">Needs Review</span>
+                            </td>
+                            <td>
+                                <button class="icon-btn">
+                                    <i data-lucide="more-horizontal" class="w-4 h-4"></i>
+                                </button>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        lucide.createIcons();
+        
+        // Add subtle hover effects
+        document.querySelectorAll('.data-table tbody tr').forEach((row, index) => {
+            row.style.opacity = '0';
+            row.style.animation = `fadeIn 0.5s ease forwards`;
+            row.style.animationDelay = `${0.6 + (index * 0.05)}s`;
+        });
+    </script>
+</body>
+</html>

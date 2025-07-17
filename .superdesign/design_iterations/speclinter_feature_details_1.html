@@ -1,0 +1,708 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Speclinter - User Authentication System</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="theme_slate_gold.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            background-color: var(--background);
+            color: var(--foreground);
+            font-family: var(--font-sans);
+            letter-spacing: var(--tracking-normal);
+            line-height: 1.6;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        /* Background texture */
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background-image: 
+                radial-gradient(circle at 20% 50%, oklch(from var(--primary) l c h / 0.03), transparent 50%),
+                radial-gradient(circle at 80% 80%, oklch(from var(--accent) l c h / 0.02), transparent 50%);
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        .main-container {
+            position: relative;
+            z-index: 2;
+        }
+
+        /* Header styles */
+        .header-blur {
+            backdrop-filter: blur(8px);
+            background: oklch(from var(--background) l c h / 0.8);
+        }
+
+        /* Breadcrumb */
+        .breadcrumb {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.875rem;
+            color: var(--muted-foreground);
+        }
+
+        .breadcrumb a {
+            color: var(--muted-foreground);
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+
+        .breadcrumb a:hover {
+            color: var(--foreground);
+        }
+
+        /* Tab navigation */
+        .tab-nav {
+            display: flex;
+            gap: 2rem;
+            border-bottom: 1px solid var(--border);
+            margin-bottom: 2rem;
+        }
+
+        .tab-link {
+            padding: 0.75rem 0;
+            font-weight: 500;
+            font-size: 0.875rem;
+            color: var(--muted-foreground);
+            text-decoration: none;
+            position: relative;
+            transition: color 0.2s;
+        }
+
+        .tab-link:hover {
+            color: var(--foreground);
+        }
+
+        .tab-link.active {
+            color: var(--foreground);
+        }
+
+        .tab-link.active::after {
+            content: '';
+            position: absolute;
+            bottom: -1px;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: var(--primary);
+            border-radius: 1px 1px 0 0;
+        }
+
+        /* Card styles */
+        .card {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-lg);
+            padding: 1.5rem;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: start;
+            margin-bottom: 1.5rem;
+        }
+
+        .card-title {
+            font-size: 1rem;
+            font-weight: 600;
+            margin-bottom: 0.25rem;
+        }
+
+        .card-subtitle {
+            font-size: 0.8125rem;
+            color: var(--muted-foreground);
+        }
+
+        /* Manifest header */
+        .manifest-header {
+            background: var(--muted);
+            border-radius: var(--radius);
+            padding: 1rem;
+            margin-bottom: 1.5rem;
+            font-family: var(--font-mono);
+            font-size: 0.8125rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .manifest-path {
+            color: var(--foreground);
+            font-weight: 500;
+        }
+
+        /* Status badge */
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.375rem;
+            padding: 0.375rem 0.75rem;
+            border-radius: var(--radius-sm);
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.025em;
+        }
+
+        .status-verified {
+            background: oklch(from var(--primary) l c h / 0.1);
+            color: var(--primary);
+        }
+
+        .status-modified {
+            background: oklch(from var(--accent) l c h / 0.1);
+            color: var(--accent);
+        }
+
+        /* Coverage meters */
+        .coverage-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .coverage-item {
+            text-align: center;
+        }
+
+        .coverage-circle {
+            width: 80px;
+            height: 80px;
+            margin: 0 auto 0.5rem;
+            position: relative;
+        }
+
+        .coverage-circle svg {
+            transform: rotate(-90deg);
+        }
+
+        .coverage-circle-bg {
+            fill: none;
+            stroke: var(--muted);
+            stroke-width: 8;
+        }
+
+        .coverage-circle-fill {
+            fill: none;
+            stroke: var(--primary);
+            stroke-width: 8;
+            stroke-linecap: round;
+            transition: stroke-dashoffset 0.5s ease;
+        }
+
+        .coverage-value {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 1.25rem;
+            font-weight: 700;
+        }
+
+        .coverage-label {
+            font-size: 0.8125rem;
+            color: var(--muted-foreground);
+        }
+
+        /* File list */
+        .file-list {
+            space-y: 0.75rem;
+        }
+
+        .file-item {
+            background: var(--muted);
+            border-radius: var(--radius);
+            padding: 1rem;
+            transition: all 0.2s;
+            cursor: pointer;
+        }
+
+        .file-item:hover {
+            background: oklch(from var(--muted) calc(l + 0.02) c h);
+            transform: translateX(4px);
+        }
+
+        .file-path {
+            font-family: var(--font-mono);
+            font-size: 0.875rem;
+            font-weight: 500;
+            margin-bottom: 0.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .file-status {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: oklch(0.65 0.18 145);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 0.625rem;
+        }
+
+        .file-symbols {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            margin-top: 0.5rem;
+        }
+
+        .symbol-tag {
+            background: var(--background);
+            padding: 0.25rem 0.5rem;
+            border-radius: var(--radius-sm);
+            font-size: 0.75rem;
+            font-family: var(--font-mono);
+            display: inline-flex;
+            align-items: center;
+            gap: 0.25rem;
+        }
+
+        .symbol-type {
+            color: var(--muted-foreground);
+            font-size: 0.625rem;
+            text-transform: uppercase;
+        }
+
+        /* Test files section */
+        .test-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1rem;
+        }
+
+        .test-card {
+            background: var(--muted);
+            border-radius: var(--radius);
+            padding: 1rem;
+            text-align: center;
+            transition: all 0.2s;
+        }
+
+        .test-card:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-md);
+        }
+
+        .test-icon {
+            width: 40px;
+            height: 40px;
+            margin: 0 auto 0.5rem;
+            border-radius: var(--radius);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.25rem;
+        }
+
+        .test-icon.unit { background: oklch(from var(--primary) l c h / 0.1); }
+        .test-icon.integration { background: oklch(from var(--accent) l c h / 0.1); }
+        .test-icon.e2e { background: oklch(from var(--chart-3) l c h / 0.1); }
+
+        .test-label {
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.025em;
+            margin-bottom: 0.25rem;
+        }
+
+        .test-file {
+            font-family: var(--font-mono);
+            font-size: 0.75rem;
+            color: var(--muted-foreground);
+            word-break: break-all;
+        }
+
+        /* Buttons */
+        .btn {
+            padding: 0.5rem 1rem;
+            border-radius: var(--radius);
+            font-weight: 500;
+            font-size: 0.875rem;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            cursor: pointer;
+            border: none;
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: var(--primary-foreground);
+            box-shadow: var(--shadow-xs);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-1px);
+            box-shadow: var(--shadow-sm);
+            background: oklch(from var(--primary) calc(l + 0.03) c h);
+        }
+
+        .btn-secondary {
+            background: var(--secondary);
+            color: var(--secondary-foreground);
+        }
+
+        .btn-secondary:hover {
+            background: oklch(from var(--secondary) calc(l + 0.03) c h);
+        }
+
+        /* Metadata info */
+        .metadata-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 1rem;
+            padding: 1rem;
+            background: var(--muted);
+            border-radius: var(--radius);
+            margin-bottom: 1.5rem;
+        }
+
+        .metadata-item {
+            text-align: center;
+        }
+
+        .metadata-label {
+            font-size: 0.75rem;
+            color: var(--muted-foreground);
+            margin-bottom: 0.25rem;
+        }
+
+        .metadata-value {
+            font-weight: 600;
+            font-size: 0.875rem;
+        }
+
+        /* Animation */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .fade-in {
+            opacity: 0;
+            animation: fadeIn 0.5s ease forwards;
+        }
+
+        .stagger-1 { animation-delay: 0.1s; }
+        .stagger-2 { animation-delay: 0.2s; }
+        .stagger-3 { animation-delay: 0.3s; }
+        .stagger-4 { animation-delay: 0.4s; }
+
+        /* Hash display */
+        .hash-display {
+            font-family: var(--font-mono);
+            font-size: 0.75rem;
+            color: var(--muted-foreground);
+            background: var(--background);
+            padding: 0.25rem 0.5rem;
+            border-radius: var(--radius-sm);
+            display: inline-block;
+        }
+
+        /* Icon styles */
+        .icon-sm { width: 16px; height: 16px; }
+        .icon-xs { width: 14px; height: 14px; }
+    </style>
+</head>
+<body>
+    <div class="main-container min-h-screen">
+        <!-- Header -->
+        <header class="header-blur border-b border-border/50 sticky top-0 z-50">
+            <div class="max-w-7xl mx-auto px-6 py-4">
+                <div class="flex justify-between items-center">
+                    <div class="flex items-center gap-10">
+                        <h1 class="text-xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">speclinter</h1>
+                        <nav class="breadcrumb">
+                            <a href="#">Dashboard</a>
+                            <i data-lucide="chevron-right" class="icon-xs"></i>
+                            <a href="#">Features</a>
+                            <i data-lucide="chevron-right" class="icon-xs"></i>
+                            <span>User Authentication System</span>
+                        </nav>
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <button class="btn btn-secondary">
+                            <i data-lucide="git-branch" class="icon-sm"></i>
+                            View in Git
+                        </button>
+                        <button class="btn btn-primary">
+                            <i data-lucide="check-circle" class="icon-sm"></i>
+                            Verify Now
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="max-w-7xl mx-auto px-6 py-8">
+            <!-- Feature Header -->
+            <div class="mb-6 fade-in">
+                <div class="flex items-start justify-between mb-4">
+                    <div>
+                        <h1 class="text-2xl font-bold mb-2">User Authentication System</h1>
+                        <div class="flex items-center gap-4 text-sm text-muted-foreground">
+                            <span class="flex items-center gap-1">
+                                <i data-lucide="hash" class="icon-xs"></i>
+                                REQ-001
+                            </span>
+                            <span class="flex items-center gap-1">
+                                <i data-lucide="sparkles" class="icon-xs"></i>
+                                Grade: A+ (98%)
+                            </span>
+                            <span class="flex items-center gap-1">
+                                <i data-lucide="clock" class="icon-xs"></i>
+                                Last verified: 2 hours ago
+                            </span>
+                        </div>
+                    </div>
+                    <div class="status-badge status-verified">
+                        <i data-lucide="check-circle-2" class="icon-xs"></i>
+                        Verified
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tab Navigation -->
+            <nav class="tab-nav fade-in stagger-1">
+                <a href="#" class="tab-link active">Implementation</a>
+                <a href="#" class="tab-link">Tasks</a>
+                <a href="#" class="tab-link">Specification</a>
+                <a href="#" class="tab-link">History</a>
+            </nav>
+
+            <!-- Implementation Tab Content -->
+            <div class="space-y-6">
+                <!-- Manifest Info -->
+                <div class="manifest-header fade-in stagger-2">
+                    <div>
+                        <div class="manifest-path">.speclinter/implementations/REQ-001.json</div>
+                        <div class="hash-display mt-1">sha256:abc123def456...</div>
+                    </div>
+                    <div class="flex items-center gap-4 text-sm">
+                        <span class="flex items-center gap-1">
+                            <i data-lucide="cpu" class="icon-xs"></i>
+                            claude-3.5
+                        </span>
+                        <span class="flex items-center gap-1">
+                            <i data-lucide="calendar" class="icon-xs"></i>
+                            2024-01-15
+                        </span>
+                    </div>
+                </div>
+
+                <!-- Metadata Grid -->
+                <div class="metadata-grid fade-in stagger-3">
+                    <div class="metadata-item">
+                        <div class="metadata-label">Total Files</div>
+                        <div class="metadata-value">8</div>
+                    </div>
+                    <div class="metadata-item">
+                        <div class="metadata-label">Lines of Code</div>
+                        <div class="metadata-value">1,247</div>
+                    </div>
+                    <div class="metadata-item">
+                        <div class="metadata-label">Test Files</div>
+                        <div class="metadata-value">3</div>
+                    </div>
+                    <div class="metadata-item">
+                        <div class="metadata-label">Last Modified</div>
+                        <div class="metadata-value">2 hours ago</div>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-3 gap-6">
+                    <!-- Coverage Section -->
+                    <div class="card fade-in stagger-3">
+                        <div class="card-header">
+                            <div>
+                                <h3 class="card-title">Test Coverage</h3>
+                                <p class="card-subtitle">Overall code coverage metrics</p>
+                            </div>
+                        </div>
+                        <div class="coverage-grid">
+                            <div class="coverage-item">
+                                <div class="coverage-circle">
+                                    <svg width="80" height="80">
+                                        <circle cx="40" cy="40" r="36" class="coverage-circle-bg"></circle>
+                                        <circle cx="40" cy="40" r="36" class="coverage-circle-fill" 
+                                                style="stroke-dasharray: 226; stroke-dashoffset: 18;"></circle>
+                                    </svg>
+                                    <div class="coverage-value">92%</div>
+                                </div>
+                                <div class="coverage-label">Statements</div>
+                            </div>
+                            <div class="coverage-item">
+                                <div class="coverage-circle">
+                                    <svg width="80" height="80">
+                                        <circle cx="40" cy="40" r="36" class="coverage-circle-bg"></circle>
+                                        <circle cx="40" cy="40" r="36" class="coverage-circle-fill" 
+                                                style="stroke-dasharray: 226; stroke-dashoffset: 27;"></circle>
+                                    </svg>
+                                    <div class="coverage-value">88%</div>
+                                </div>
+                                <div class="coverage-label">Branches</div>
+                            </div>
+                            <div class="coverage-item">
+                                <div class="coverage-circle">
+                                    <svg width="80" height="80">
+                                        <circle cx="40" cy="40" r="36" class="coverage-circle-bg"></circle>
+                                        <circle cx="40" cy="40" r="36" class="coverage-circle-fill" 
+                                                style="stroke-dasharray: 226; stroke-dashoffset: 11;"></circle>
+                                    </svg>
+                                    <div class="coverage-value">95%</div>
+                                </div>
+                                <div class="coverage-label">Functions</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Implemented Files -->
+                    <div class="card col-span-2 fade-in stagger-4">
+                        <div class="card-header">
+                            <div>
+                                <h3 class="card-title">Implemented Files</h3>
+                                <p class="card-subtitle">All files created or modified for this requirement</p>
+                            </div>
+                            <span class="text-sm text-muted-foreground">8 files</span>
+                        </div>
+                        <div class="space-y-3">
+                            <div class="file-item">
+                                <div class="file-path">
+                                    <span class="file-status">✓</span>
+                                    src/auth/auth.service.ts
+                                </div>
+                                <div class="file-symbols">
+                                    <span class="symbol-tag">
+                                        <span class="symbol-type">class</span>
+                                        AuthService_REQ001
+                                    </span>
+                                    <span class="symbol-tag">
+                                        <span class="symbol-type">method</span>
+                                        login
+                                    </span>
+                                    <span class="symbol-tag">
+                                        <span class="symbol-type">method</span>
+                                        logout
+                                    </span>
+                                    <span class="symbol-tag">
+                                        <span class="symbol-type">method</span>
+                                        validateToken
+                                    </span>
+                                </div>
+                            </div>
+                            <div class="file-item">
+                                <div class="file-path">
+                                    <span class="file-status">✓</span>
+                                    src/auth/auth.controller.ts
+                                </div>
+                                <div class="file-symbols">
+                                    <span class="symbol-tag">
+                                        <span class="symbol-type">class</span>
+                                        AuthController
+                                    </span>
+                                    <span class="symbol-tag">
+                                        <span class="symbol-type">route</span>
+                                        POST /login
+                                    </span>
+                                    <span class="symbol-tag">
+                                        <span class="symbol-type">route</span>
+                                        POST /logout
+                                    </span>
+                                </div>
+                            </div>
+                            <div class="file-item">
+                                <div class="file-path">
+                                    <span class="file-status" style="background: var(--accent);">!</span>
+                                    src/auth/user.dto.ts
+                                    <span class="text-xs text-accent ml-2">Modified externally</span>
+                                </div>
+                                <div class="file-symbols">
+                                    <span class="symbol-tag">
+                                        <span class="symbol-type">interface</span>
+                                        UserDTO
+                                    </span>
+                                    <span class="symbol-tag">
+                                        <span class="symbol-type">interface</span>
+                                        LoginRequestDTO
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Test Files Section -->
+                <div class="card fade-in stagger-4">
+                    <div class="card-header">
+                        <div>
+                            <h3 class="card-title">Test Files</h3>
+                            <p class="card-subtitle">Automated tests validating the implementation</p>
+                        </div>
+                    </div>
+                    <div class="test-grid">
+                        <div class="test-card">
+                            <div class="test-icon unit">🧪</div>
+                            <div class="test-label">Unit Tests</div>
+                            <div class="test-file">__tests__/auth.service.spec.ts</div>
+                        </div>
+                        <div class="test-card">
+                            <div class="test-icon integration">🔗</div>
+                            <div class="test-label">Integration Tests</div>
+                            <div class="test-file">__tests__/auth.integration.spec.ts</div>
+                        </div>
+                        <div class="test-card">
+                            <div class="test-icon e2e">🌐</div>
+                            <div class="test-label">E2E Tests</div>
+                            <div class="test-file">e2e/auth.e2e.ts</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        lucide.createIcons();
+        
+        // Animate coverage circles on load
+        setTimeout(() => {
+            document.querySelectorAll('.coverage-circle-fill').forEach(circle => {
+                const offset = circle.style.strokeDashoffset;
+                circle.style.strokeDashoffset = '226';
+                setTimeout(() => {
+                    circle.style.strokeDashoffset = offset;
+                }, 100);
+            });
+        }, 500);
+    </script>
+</body>
+</html>

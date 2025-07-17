@@ -1,0 +1,137 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Speclinter - Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="theme_speclinter_1.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;700&family=Geist+Sans:wght@400;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+    <style>
+        body {
+            background-color: var(--background);
+            color: var(--foreground);
+            font-family: var(--font-sans);
+        }
+        .card {
+            background-color: var(--card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+        }
+        .btn-primary {
+            background-color: var(--primary);
+            color: var(--primary-foreground);
+            border-radius: var(--radius);
+            padding: 0.5rem 1rem;
+            font-weight: bold;
+            transition: background-color 0.2s ease;
+        }
+        .btn-primary:hover {
+            background-color: oklch(from var(--primary) calc(l + 0.05) c h);
+        }
+        .table-row-hover:hover {
+            background-color: var(--muted);
+        }
+        .grade-badge {
+            padding: 0.25rem 0.5rem;
+            border-radius: var(--radius);
+            font-weight: bold;
+            font-family: var(--font-mono);
+            font-size: 0.8rem;
+        }
+        .grade-a-plus { background-color: #2f6c48; color: #c5f7d9; }
+        .grade-b { background-color: #3a698a; color: #d1eaff; }
+        .grade-d { background-color: #8a3a3a; color: #ffd1d1; }
+        .status-verified { color: oklch(from var(--primary) l c h); }
+        .status-modified { color: #eab308; }
+        .status-review { color: var(--muted-foreground); }
+        .status-completed { color: oklch(from var(--primary) l c h); }
+        .status-progress { color: #3b82f6; }
+    </style>
+</head>
+<body class="p-8">
+    <div class="max-w-7xl mx-auto">
+        <!-- Header -->
+        <header class="flex justify-between items-center mb-8">
+            <div class="flex items-center gap-4">
+                <h1 class="text-2xl font-bold font-mono">speclinter</h1>
+                <nav class="flex gap-4 text-muted-foreground">
+                    <a href="#" class="text-white font-bold">Dashboard</a>
+                    <a href="#">Reports</a>
+                    <a href="#">Docs</a>
+                </nav>
+            </div>
+            <div class="flex items-center gap-4">
+                <button class="btn-primary flex items-center gap-2">
+                    <i data-lucide="plus-circle" class="w-4 h-4"></i>
+                    Analyze New Spec
+                </button>
+                <img src="https://i.pravatar.cc/40" alt="User Avatar" class="rounded-full">
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main>
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-xl font-bold">All Features (23)</h2>
+                <div class="flex gap-2 items-center text-muted-foreground">
+                    <button class="flex items-center gap-1 p-2 rounded-md hover:bg-muted">
+                        <i data-lucide="filter" class="w-4 h-4"></i> Filter
+                    </button>
+                    <button class="flex items-center gap-1 p-2 rounded-md hover:bg-muted">
+                        <i data-lucide="arrow-up-down" class="w-4 h-4"></i> Sort
+                    </button>
+                    <input type="text" placeholder="Search..." class="bg-muted px-3 py-1.5 rounded-md border border-border focus:outline-none focus:ring-2 focus:ring-ring">
+                </div>
+            </div>
+
+            <!-- Features Table -->
+            <div class="card overflow-hidden">
+                <table class="w-full text-left">
+                    <thead class="border-b border-border text-muted-foreground">
+                        <tr>
+                            <th class="p-4 font-normal">Feature Name</th>
+                            <th class="p-4 font-normal">Quality</th>
+                            <th class="p-4 font-normal">Implementation</th>
+                            <th class="p-4 font-normal">Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr class="border-b border-border table-row-hover cursor-pointer">
+                            <td class="p-4 font-bold">🚀 User Authentication Flow</td>
+                            <td class="p-4"><span class="grade-badge grade-a-plus">A+ 98%</span></td>
+                            <td class="p-4"><span class="flex items-center gap-2 status-verified"><i data-lucide="check-circle-2" class="w-4 h-4"></i> Verified</span></td>
+                            <td class="p-4"><span class="flex items-center gap-2 status-completed"><i data-lucide="check-circle" class="w-4 h-4"></i> Completed</span></td>
+                        </tr>
+                        <tr class="border-b border-border table-row-hover cursor-pointer">
+                            <td class="p-4 font-bold">💳 Payment Gateway Integration</td>
+                            <td class="p-4"><span class="grade-badge grade-b">B 82%</span></td>
+                            <td class="p-4"><span class="flex items-center gap-2 status-modified"><i data-lucide="alert-triangle" class="w-4 h-4"></i> Modified</span></td>
+                            <td class="p-4"><span class="flex items-center gap-2 status-progress"><i data-lucide="loader-circle" class="w-4 h-4 animate-spin"></i> In Progress</span></td>
+                        </tr>
+                        <tr class="border-b border-border table-row-hover cursor-pointer">
+                            <td class="p-4 font-bold">📊 Reporting Dashboard</td>
+                            <td class="p-4"><span class="grade-badge grade-d">D 45%</span></td>
+                            <td class="p-4"><span class="text-muted-foreground">(No implementation)</span></td>
+                            <td class="p-4"><span class="flex items-center gap-2 status-review"><i data-lucide="search" class="w-4 h-4"></i> Needs Review</span></td>
+                        </tr>
+                        <tr class="table-row-hover cursor-pointer">
+                            <td class="p-4 font-bold">🔔 Notification System</td>
+                            <td class="p-4"><span class="grade-badge grade-b">B 88%</span></td>
+                            <td class="p-4"><span class="flex items-center gap-2 status-verified"><i data-lucide="check-circle-2" class="w-4 h-4"></i> Verified</span></td>
+                            <td class="p-4"><span class="flex items-center gap-2 status-progress"><i data-lucide="loader-circle" class="w-4 h-4 animate-spin"></i> In Progress</span></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </main>
+    </div>
+    <script>
+        lucide.createIcons();
+    </script>
+</body>
+</html>
