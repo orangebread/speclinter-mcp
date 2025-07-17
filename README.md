@@ -11,6 +11,8 @@
 
 # SpecLinter MCP
 
+[![smithery badge](https://smithery.ai/badge/@orangebread/speclinter-mcp)](https://smithery.ai/server/@orangebread/speclinter-mcp)
+
 > **🚀 Turn vague specs into structured tasks with AI-powered quality gates**
 
 Transform natural language specifications into actionable development tasks with built-in quality assessment, similarity detection, and implementation validation.
@@ -28,6 +30,16 @@ Transform natural language specifications into actionable development tasks with
 ## 🎯 Quick Start (5 Minutes)
 
 ### � Installation & Setup
+
+#### Installing via Smithery
+
+To install SpecLinter for Claude Desktop automatically via [Smithery](https://smithery.ai/server/@orangebread/speclinter-mcp):
+
+```bash
+npx -y @smithery/cli install @orangebread/speclinter-mcp --client claude
+```
+
+#### Manual Installation
 ```bash
 git clone https://github.com/orangebread/speclinter-mcp.git
 cd speclinter-mcp
@@ -405,3 +417,4 @@ SpecLinter uses Vitest for implementation validation rather than traditional uni
 ## 📄 License
 
 MIT
+```
