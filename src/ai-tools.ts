@@ -2255,11 +2255,26 @@ export async function handleProcessComprehensiveSpecAnalysis(args: any) {
       missingElements: validatedAnalysis.qualityAnalysis.semanticIssues.map(issue => issue.description)
     };
 
+    // Save tasks to storage (same as handleProcessSpecAnalysisAI)
+    const storage = await StorageManager.createInitializedStorage(rootDir);
+    const saveResult = await storage.saveFeatureFromAI(
+      feature_name,
+      tasks,
+      parseResult,
+      validatedAnalysis,
+      {
+        onSimilarFound: 'prompt', // Default deduplication strategy
+        skipSimilarityCheck: false
+      }
+    );
+
     return {
       success: true,
       feature_name,
       project_root: rootDir,
       parse_result: parseResult,
+      files_created: saveResult.files,
+      merge_result: saveResult.mergeResult,
       comprehensive_analysis: {
         qualityAnalysis: {
           overallScore: validatedAnalysis.qualityAnalysis.overallScore,
@@ -2285,7 +2300,7 @@ export async function handleProcessComprehensiveSpecAnalysis(args: any) {
       },
       next_steps: [
         'Comprehensive analysis complete',
-        'Tasks ready for implementation',
+        'Tasks saved and ready for implementation',
         'Review business context and alignment',
         'Consider implementation guidance and risk factors',
         'Generate Gherkin scenarios for testing'
