@@ -11,6 +11,13 @@ import {
   handleGenerateTasksUnified,
   handleAnalyzeSpecComprehensiveUnified
 } from './unified-ai-tools.js';
+import {
+  handleCreateIMSManifestPrepare,
+  handleProcessIMSManifestCreation,
+  handleVerifyIMSManifestPrepare,
+  handleProcessIMSManifestVerification,
+  handleQueryIMSManifests
+} from './ai-tools.js';
 import { generateCodebaseAnalysisExample, generateMinimalExample, getSchemaDocumentation } from './utils/schema-examples.js';
 
 /**
@@ -258,6 +265,83 @@ export function registerAITools(server: McpServer) {
       }
     },
     async (args) => handleToolExecution(handleAnalyzeSpecComprehensiveUnified, args)
+  );
+
+  // IMS (Implementation Manifest Standard) Tools
+
+  // Create IMS Manifest (Two-step pattern)
+  server.registerTool(
+    'speclinter_create_ims_manifest_prepare',
+    {
+      title: 'Prepare IMS Manifest Creation',
+      description: 'Step 1: Analyze files and prepare AI prompt for IMS manifest creation',
+      inputSchema: {
+        requirement_id: z.string().describe('Unique requirement identifier (e.g., REQ-001)'),
+        requirement_source: z.string().describe('URL or path to the requirement specification'),
+        files: z.array(z.string()).describe('Array of file paths to include in the manifest'),
+        project_root: z.string().optional().describe('Root directory of the project (defaults to auto-detected project root)')
+      }
+    },
+    async (args) => handleToolExecution(handleCreateIMSManifestPrepare, args)
+  );
+
+  server.registerTool(
+    'speclinter_process_ims_manifest_creation',
+    {
+      title: 'Process IMS Manifest Creation',
+      description: 'Step 2: Process AI analysis and create IMS manifest file',
+      inputSchema: {
+        analysis: z.object({}).passthrough().describe('AI analysis result from prepare step'),
+        requirement_id: z.string().describe('Unique requirement identifier'),
+        project_root: z.string().optional().describe('Root directory of the project (defaults to auto-detected project root)')
+      }
+    },
+    async (args) => handleToolExecution(handleProcessIMSManifestCreation, args)
+  );
+
+  // Verify IMS Manifest (Two-step pattern)
+  server.registerTool(
+    'speclinter_verify_ims_manifest_prepare',
+    {
+      title: 'Prepare IMS Manifest Verification',
+      description: 'Step 1: Load manifest and prepare AI prompt for verification analysis',
+      inputSchema: {
+        requirement_id: z.string().describe('Requirement ID of the manifest to verify'),
+        project_root: z.string().optional().describe('Root directory of the project (defaults to auto-detected project root)')
+      }
+    },
+    async (args) => handleToolExecution(handleVerifyIMSManifestPrepare, args)
+  );
+
+  server.registerTool(
+    'speclinter_process_ims_manifest_verification',
+    {
+      title: 'Process IMS Manifest Verification',
+      description: 'Step 2: Process AI verification analysis and provide results',
+      inputSchema: {
+        analysis: z.object({}).passthrough().describe('AI analysis result from prepare step'),
+        requirement_id: z.string().describe('Requirement ID of the manifest'),
+        project_root: z.string().optional().describe('Root directory of the project (defaults to auto-detected project root)')
+      }
+    },
+    async (args) => handleToolExecution(handleProcessIMSManifestVerification, args)
+  );
+
+  // Query IMS Manifests (Single-step tool)
+  server.registerTool(
+    'speclinter_query_ims_manifests',
+    {
+      title: 'Query IMS Manifests',
+      description: 'Search and report on implementation manifests with filtering and traceability',
+      inputSchema: {
+        requirement_id: z.string().optional().describe('Filter by requirement ID (partial match)'),
+        agent: z.string().optional().describe('Filter by agent identifier or source'),
+        status: z.enum(['complete', 'partial', 'planned']).optional().describe('Filter by implementation status'),
+        files: z.array(z.string()).optional().describe('Filter by files involved in implementation'),
+        project_root: z.string().optional().describe('Root directory of the project (defaults to auto-detected project root)')
+      }
+    },
+    async (args) => handleToolExecution(handleQueryIMSManifests, args)
   );
 }
 

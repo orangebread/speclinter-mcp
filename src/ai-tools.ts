@@ -1,5 +1,6 @@
 import { promises as fs } from 'fs';
 import path from 'path';
+import crypto from 'crypto';
 import { StorageManager } from './core/storage-manager.js';
 import { ContextUpdater } from './core/context-updater.js';
 import {
@@ -2327,3 +2328,486 @@ export async function handleProcessComprehensiveSpecAnalysis(args: any) {
 // Export aliases for test compatibility
 export const handleAnalyzeCodebaseAI = handleAnalyzeCodebase;
 export const handleUpdateContextFilesAI = handleProcessCodebaseAnalysis;
+
+/**
+ * Helper functions for IMS tools
+ */
+
+/**
+ * Extract symbols from file content using simple parsing
+ */
+async function extractFileSymbols(content: string, filePath: string): Promise<Array<{name: string, type: string, lines: [number, number]}>> {
+  const symbols: Array<{name: string, type: string, lines: [number, number]}> = [];
+  const lines = content.split('\n');
+
+  // Simple symbol extraction based on file extension
+  const ext = path.extname(filePath).toLowerCase();
+
+  if (ext === '.ts' || ext === '.js') {
+    // TypeScript/JavaScript symbol extraction
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i].trim();
+
+      // Class declarations
+      const classMatch = line.match(/^export\s+(?:abstract\s+)?class\s+(\w+)/);
+      if (classMatch) {
+        symbols.push({ name: classMatch[1], type: 'class', lines: [i + 1, i + 1] });
+      }
+
+      // Function declarations
+      const funcMatch = line.match(/^export\s+(?:async\s+)?function\s+(\w+)/);
+      if (funcMatch) {
+        symbols.push({ name: funcMatch[1], type: 'function', lines: [i + 1, i + 1] });
+      }
+
+      // Interface declarations
+      const interfaceMatch = line.match(/^export\s+interface\s+(\w+)/);
+      if (interfaceMatch) {
+        symbols.push({ name: interfaceMatch[1], type: 'interface', lines: [i + 1, i + 1] });
+      }
+
+      // Type declarations
+      const typeMatch = line.match(/^export\s+type\s+(\w+)/);
+      if (typeMatch) {
+        symbols.push({ name: typeMatch[1], type: 'type', lines: [i + 1, i + 1] });
+      }
+
+      // Const declarations
+      const constMatch = line.match(/^export\s+const\s+(\w+)/);
+      if (constMatch) {
+        symbols.push({ name: constMatch[1], type: 'constant', lines: [i + 1, i + 1] });
+      }
+    }
+  }
+
+  return symbols;
+}
+
+/**
+ * Load project context for AI analysis
+ */
+async function loadProjectContext(rootDir: string): Promise<{techStack?: string, architecture?: string}> {
+  try {
+    const storage = await import('./core/storage-manager.js').then(m => m.StorageManager.createInitializedStorage(rootDir));
+    const context = await storage.loadProjectContext();
+
+    if (context) {
+      return {
+        techStack: context.stack ? Object.values(context.stack).join(', ') : undefined,
+        architecture: 'Unknown'
+      };
+    }
+
+    // Fallback: try to read context files directly
+    const contextDir = path.join(rootDir, '.speclinter', 'context');
+    try {
+      const projectMd = await fs.readFile(path.join(contextDir, 'project.md'), 'utf-8');
+      const techStackMatch = projectMd.match(/Tech Stack[:\s]*([^\n]+)/i);
+      const archMatch = projectMd.match(/Architecture[:\s]*([^\n]+)/i);
+
+      return {
+        techStack: techStackMatch?.[1]?.trim(),
+        architecture: archMatch?.[1]?.trim()
+      };
+    } catch {
+      return {};
+    }
+  } catch {
+    return {};
+  }
+}
+
+/**
+ * IMS (Implementation Manifest Standard) Tools
+ * These tools implement the IMS v0.1.0 specification for tracking implementation manifests
+ */
+
+/**
+ * Step 1: Prepare IMS manifest creation with code analysis
+ */
+export async function handleCreateIMSManifestPrepare(args: any) {
+  const {
+    requirement_id,
+    requirement_source,
+    files = [],
+    project_root
+  } = args;
+
+  if (!requirement_id) {
+    return createErrorResponse(
+      new Error('Requirement ID is required'),
+      'MISSING_REQUIREMENT_ID'
+    );
+  }
+
+  if (!requirement_source) {
+    return createErrorResponse(
+      new Error('Requirement source is required'),
+      'MISSING_REQUIREMENT_SOURCE'
+    );
+  }
+
+  const rootDir = await resolveProjectRoot(project_root);
+
+  try {
+    // Import StorageManager for IMS operations
+    const { StorageManager } = await import('./core/storage-manager.js');
+
+    // Ensure IMS storage is initialized
+    await StorageManager.initializeIMSStorage(rootDir);
+
+    // Analyze specified files for symbols and content
+    const analyzedFiles = [];
+
+    for (const filePath of files) {
+      try {
+        const fullPath = path.join(rootDir, filePath);
+        const content = await fs.readFile(fullPath, 'utf-8');
+
+        // Calculate file hash
+        const hash = crypto.createHash('sha256').update(content).digest('hex');
+
+        // Extract symbols using simple parsing
+        const symbols = await extractFileSymbols(content, filePath);
+
+        analyzedFiles.push({
+          path: filePath,
+          hash: `sha256:${hash}`,
+          content: content.substring(0, 2000), // First 2000 chars for AI analysis
+          symbols,
+          size: content.length,
+          lines: content.split('\n').length
+        });
+      } catch (error) {
+        console.warn(`Failed to analyze file ${filePath}:`, error);
+        analyzedFiles.push({
+          path: filePath,
+          error: `Failed to read file: ${error instanceof Error ? error.message : 'Unknown error'}`
+        });
+      }
+    }
+
+    // Get project context for AI analysis
+    const projectContext = await loadProjectContext(rootDir);
+
+    // Generate AI prompt for manifest creation
+    const manifestPrompt = `You are an expert software implementation analyst. Create a comprehensive IMS v0.1.0 manifest for the given requirement and implementation files.
+
+**REQUIREMENT INFORMATION:**
+- ID: ${requirement_id}
+- Source: ${requirement_source}
+
+**ANALYZED FILES:**
+${analyzedFiles.map(file => {
+  if (file.error) {
+    return `- ${file.path}: ERROR - ${file.error}`;
+  }
+  return `- ${file.path} (${file.lines} lines, ${file.symbols?.length || 0} symbols)
+  Hash: ${file.hash}
+  Symbols: ${file.symbols?.map((s: any) => `${s.name} (${s.type})`).join(', ') || 'None'}`;
+}).join('\n')}
+
+**PROJECT CONTEXT:**
+- Tech Stack: ${projectContext.techStack || 'Unknown'}
+- Architecture: ${projectContext.architecture || 'Unknown'}
+
+**MANIFEST CREATION REQUIREMENTS:**
+1. Create a complete IMS v0.1.0 manifest following the schema exactly
+2. Include all analyzed files with their hashes and symbols
+3. Set appropriate implementation status based on file analysis
+4. Generate meaningful file purposes based on content analysis
+5. Include agent information (use "ai-assistant" as identifier, "speclinter" as source)
+6. Add current timestamp
+7. Include SpecLinter extensions with relevant patterns
+
+**RESPONSE FORMAT:**
+Return a complete JSON manifest following the IMS v0.1.0 schema. Ensure all required fields are present and properly formatted.`;
+
+    return {
+      success: true,
+      action: 'ai_analysis_required',
+      analysis_prompt: manifestPrompt,
+      follow_up_tool: 'process_ims_manifest_creation',
+      schema: 'IMSManifestSchema',
+      context: {
+        requirement_id,
+        requirement_source,
+        analyzed_files: analyzedFiles,
+        project_root: rootDir
+      }
+    };
+
+  } catch (error) {
+    return createErrorResponse(error, 'IMS_MANIFEST_PREPARE_FAILED');
+  }
+}
+
+/**
+ * Step 2: Process AI manifest creation and save to storage
+ */
+export async function handleProcessIMSManifestCreation(args: any) {
+  const {
+    analysis,
+    requirement_id,
+    project_root
+  } = args;
+
+  if (!analysis) {
+    return createErrorResponse(
+      new Error('AI analysis is required'),
+      'MISSING_ANALYSIS'
+    );
+  }
+
+  const rootDir = await resolveProjectRoot(project_root);
+
+  try {
+    // Import required modules
+    const { StorageManager } = await import('./core/storage-manager.js');
+    const { validateIMSManifest } = await import('./types/ims-schemas.js');
+
+    // Validate the AI-generated manifest
+    let manifest;
+    try {
+      manifest = validateIMSManifest(analysis);
+    } catch (validationError) {
+      return createErrorResponse(
+        new Error(`Invalid manifest generated by AI: ${validationError instanceof Error ? validationError.message : 'Unknown validation error'}`),
+        'INVALID_MANIFEST'
+      );
+    }
+
+    // Save manifest to storage
+    const { filePath, hash } = await StorageManager.saveIMSManifest(manifest, rootDir);
+
+    return {
+      success: true,
+      message: `IMS manifest created successfully for requirement ${requirement_id}`,
+      data: {
+        requirement_id: manifest.requirement.id,
+        manifest_path: path.relative(rootDir, filePath),
+        manifest_hash: hash,
+        implementation_status: manifest.implementation.status,
+        file_count: manifest.implementation.files.length,
+        agent: manifest.agent,
+        created_at: manifest.agent.timestamp
+      }
+    };
+
+  } catch (error) {
+    return createErrorResponse(error, 'IMS_MANIFEST_CREATION_FAILED');
+  }
+}
+
+/**
+ * Step 1: Prepare IMS manifest verification
+ */
+export async function handleVerifyIMSManifestPrepare(args: any) {
+  const {
+    requirement_id,
+    project_root
+  } = args;
+
+  if (!requirement_id) {
+    return createErrorResponse(
+      new Error('Requirement ID is required'),
+      'MISSING_REQUIREMENT_ID'
+    );
+  }
+
+  const rootDir = await resolveProjectRoot(project_root);
+
+  try {
+    // Import StorageManager for IMS operations
+    const { StorageManager } = await import('./core/storage-manager.js');
+
+    // Load the manifest
+    const manifest = await StorageManager.loadIMSManifest(requirement_id, rootDir);
+    if (!manifest) {
+      return createErrorResponse(
+        new Error(`Manifest not found for requirement ${requirement_id}`),
+        'MANIFEST_NOT_FOUND'
+      );
+    }
+
+    // Perform file verification
+    const verification = await StorageManager.verifyIMSManifest(requirement_id, rootDir);
+
+    // Generate AI prompt for comprehensive verification analysis
+    const verificationPrompt = `You are an expert implementation verification analyst. Analyze the IMS manifest verification results and provide comprehensive assessment.
+
+**MANIFEST INFORMATION:**
+- Requirement ID: ${manifest.requirement.id}
+- Title: ${manifest.requirement.title || 'N/A'}
+- Source: ${manifest.requirement.source}
+- Implementation Status: ${manifest.implementation.status || 'unknown'}
+- Agent: ${manifest.agent.identifier} (${manifest.agent.source})
+- Created: ${manifest.agent.timestamp || 'Unknown'}
+
+**FILE VERIFICATION RESULTS:**
+${verification.fileVerification.map(file => `
+- ${file.path}: ${file.valid ? 'VALID' : 'INVALID'}
+  ${file.expectedHash ? `Expected Hash: ${file.expectedHash}` : 'No hash to verify'}
+  ${file.actualHash ? `Actual Hash: ${file.actualHash}` : 'File not found/readable'}
+`).join('')}
+
+**VERIFICATION ERRORS:**
+${verification.errors.length > 0 ? verification.errors.map(error => `- ${error}`).join('\n') : 'None'}
+
+**MANIFEST CONTENT:**
+\`\`\`json
+${JSON.stringify(manifest, null, 2)}
+\`\`\`
+
+**VERIFICATION REQUIREMENTS:**
+1. Assess overall manifest integrity and validity
+2. Evaluate file hash verification results
+3. Check for missing or modified files
+4. Validate manifest schema compliance
+5. Assess implementation completeness
+6. Check for potential security issues
+7. Provide recommendations for any issues found
+
+**RESPONSE FORMAT:**
+Return a comprehensive verification report with:
+- Overall verification status (pass/fail/warning)
+- Detailed findings for each verification area
+- Risk assessment for any issues found
+- Specific recommendations for remediation
+- Confidence score for the verification results`;
+
+    return {
+      success: true,
+      action: 'ai_analysis_required',
+      analysis_prompt: verificationPrompt,
+      follow_up_tool: 'process_ims_manifest_verification',
+      schema: 'IMSVerificationResultSchema',
+      context: {
+        requirement_id,
+        manifest,
+        verification_results: verification,
+        project_root: rootDir
+      }
+    };
+
+  } catch (error) {
+    return createErrorResponse(error, 'IMS_VERIFICATION_PREPARE_FAILED');
+  }
+}
+
+/**
+ * Step 2: Process IMS manifest verification results
+ */
+export async function handleProcessIMSManifestVerification(args: any) {
+  const {
+    analysis,
+    requirement_id,
+    project_root
+  } = args;
+
+  if (!analysis) {
+    return createErrorResponse(
+      new Error('AI analysis is required'),
+      'MISSING_ANALYSIS'
+    );
+  }
+
+  const rootDir = await resolveProjectRoot(project_root);
+
+  try {
+    // Import StorageManager for IMS operations
+    const { StorageManager } = await import('./core/storage-manager.js');
+
+    // Get the original verification results
+    const verification = await StorageManager.verifyIMSManifest(requirement_id, rootDir);
+
+    return {
+      success: true,
+      message: `IMS manifest verification completed for requirement ${requirement_id}`,
+      data: {
+        requirement_id,
+        verification_status: verification.valid ? 'pass' : 'fail',
+        file_verification: verification.fileVerification,
+        errors: verification.errors,
+        ai_analysis: analysis,
+        verified_at: new Date().toISOString()
+      }
+    };
+
+  } catch (error) {
+    return createErrorResponse(error, 'IMS_VERIFICATION_PROCESS_FAILED');
+  }
+}
+
+/**
+ * IMS Query Tool - Search and report on implementation manifests
+ */
+export async function handleQueryIMSManifests(args: any) {
+  const {
+    requirement_id,
+    agent,
+    status,
+    files = [],
+    project_root
+  } = args;
+
+  const rootDir = await resolveProjectRoot(project_root);
+
+  try {
+    // Import StorageManager for IMS operations
+    const { StorageManager } = await import('./core/storage-manager.js');
+
+    // Build query criteria
+    const criteria: any = {};
+    if (requirement_id) criteria.requirementId = requirement_id;
+    if (agent) criteria.agent = agent;
+    if (status) criteria.status = status;
+    if (files.length > 0) criteria.files = files;
+
+    // Query manifests
+    const manifests = await StorageManager.queryIMSManifests(criteria, rootDir);
+
+    // Generate summary statistics
+    const stats = {
+      total_manifests: manifests.length,
+      by_status: manifests.reduce((acc: any, m) => {
+        const status = m.implementation.status || 'unknown';
+        acc[status] = (acc[status] || 0) + 1;
+        return acc;
+      }, {}),
+      by_agent: manifests.reduce((acc: any, m) => {
+        const agent = m.agent.identifier;
+        acc[agent] = (acc[agent] || 0) + 1;
+        return acc;
+      }, {}),
+      total_files: manifests.reduce((acc, m) => acc + m.implementation.files.length, 0)
+    };
+
+    // Generate traceability report
+    const traceabilityReport = manifests.map(manifest => ({
+      requirement_id: manifest.requirement.id,
+      title: manifest.requirement.title,
+      source: manifest.requirement.source,
+      status: manifest.implementation.status,
+      files: manifest.implementation.files.map(f => f.path),
+      agent: manifest.agent.identifier,
+      created_at: manifest.agent.timestamp,
+      relationships: manifest.relationships,
+      chain_previous: manifest.chain?.previous
+    }));
+
+    return {
+      success: true,
+      message: `Found ${manifests.length} manifests matching query criteria`,
+      data: {
+        query_criteria: criteria,
+        statistics: stats,
+        manifests: traceabilityReport,
+        generated_at: new Date().toISOString()
+      }
+    };
+
+  } catch (error) {
+    return createErrorResponse(error, 'IMS_QUERY_FAILED');
+  }
+}

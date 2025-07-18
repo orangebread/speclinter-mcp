@@ -1,0 +1,827 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Speclinter - Specification Analysis</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="theme_slate_gold.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            background-color: var(--background);
+            color: var(--foreground);
+            font-family: var(--font-sans);
+            letter-spacing: var(--tracking-normal);
+            line-height: 1.6;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        /* Background texture */
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background-image: 
+                radial-gradient(circle at 20% 50%, oklch(from var(--primary) l c h / 0.03), transparent 50%),
+                radial-gradient(circle at 80% 80%, oklch(from var(--accent) l c h / 0.02), transparent 50%);
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        .main-container {
+            position: relative;
+            z-index: 2;
+        }
+
+        /* Header styles */
+        .header-blur {
+            backdrop-filter: blur(8px);
+            background: oklch(from var(--background) l c h / 0.8);
+        }
+
+        /* Logo */
+        .logo {
+            font-size: 1.25rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--primary), var(--accent));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        /* Editor styles */
+        .spec-editor {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-lg);
+            min-height: 400px;
+            padding: 1.5rem;
+            font-family: var(--font-sans);
+            font-size: 0.9375rem;
+            line-height: 1.8;
+            color: var(--foreground);
+            resize: vertical;
+            transition: all 0.2s;
+        }
+
+        .spec-editor:focus {
+            outline: none;
+            border-color: var(--ring);
+            box-shadow: 0 0 0 3px oklch(from var(--ring) l c h / 0.1);
+        }
+
+        .spec-editor::placeholder {
+            color: var(--muted-foreground);
+            opacity: 0.6;
+        }
+
+        /* Grade display */
+        .grade-display {
+            text-align: center;
+            padding: 2rem;
+        }
+
+        .grade-circle {
+            width: 120px;
+            height: 120px;
+            margin: 0 auto 1rem;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2.5rem;
+            font-weight: 700;
+            position: relative;
+            transition: all 0.3s ease;
+        }
+
+        .grade-circle::before {
+            content: '';
+            position: absolute;
+            inset: -4px;
+            border-radius: 50%;
+            background: inherit;
+            opacity: 0.2;
+            z-index: -1;
+        }
+
+        .grade-a-plus {
+            background: linear-gradient(135deg, #10b981, #059669);
+            color: white;
+            box-shadow: 0 8px 24px rgb(16 185 129 / 0.3);
+        }
+
+        .grade-a {
+            background: linear-gradient(135deg, #22c55e, #16a34a);
+            color: white;
+            box-shadow: 0 8px 24px rgb(34 197 94 / 0.3);
+        }
+
+        .grade-b {
+            background: linear-gradient(135deg, var(--primary), oklch(from var(--primary) calc(l - 0.05) c h));
+            color: white;
+            box-shadow: 0 8px 24px oklch(from var(--primary) l c h / 0.3);
+        }
+
+        .grade-c {
+            background: linear-gradient(135deg, var(--accent), oklch(from var(--accent) calc(l - 0.05) c h));
+            color: var(--accent-foreground);
+            box-shadow: 0 8px 24px oklch(from var(--accent) l c h / 0.3);
+        }
+
+        .grade-d {
+            background: linear-gradient(135deg, var(--destructive), oklch(from var(--destructive) calc(l - 0.05) c h));
+            color: white;
+            box-shadow: 0 8px 24px oklch(from var(--destructive) l c h / 0.3);
+        }
+
+        .grade-f {
+            background: linear-gradient(135deg, #6b7280, #4b5563);
+            color: white;
+            box-shadow: 0 8px 24px rgb(107 114 128 / 0.3);
+        }
+
+        .quality-score {
+            font-size: 1.125rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+
+        .quality-label {
+            font-size: 0.875rem;
+            color: var(--muted-foreground);
+        }
+
+        /* Progress bar */
+        .quality-progress {
+            width: 200px;
+            height: 8px;
+            background: var(--muted);
+            border-radius: 4px;
+            margin: 1rem auto;
+            overflow: hidden;
+        }
+
+        .quality-progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--destructive), var(--accent), var(--primary), #10b981);
+            border-radius: 4px;
+            transition: width 0.5s ease;
+        }
+
+        /* Insights cards */
+        .insight-card {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-lg);
+            padding: 1.5rem;
+            height: 100%;
+        }
+
+        .insight-header {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            margin-bottom: 1rem;
+        }
+
+        .insight-icon {
+            width: 32px;
+            height: 32px;
+            border-radius: var(--radius);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .insight-icon.strengths {
+            background: oklch(from var(--primary) l c h / 0.1);
+            color: var(--primary);
+        }
+
+        .insight-icon.issues {
+            background: oklch(from var(--destructive) l c h / 0.1);
+            color: var(--destructive);
+        }
+
+        .insight-icon.improvements {
+            background: oklch(from var(--accent) l c h / 0.1);
+            color: var(--accent);
+        }
+
+        .insight-title {
+            font-weight: 600;
+            font-size: 0.9375rem;
+        }
+
+        .insight-list {
+            list-style: none;
+            space-y: 0.75rem;
+        }
+
+        .insight-item {
+            display: flex;
+            align-items: start;
+            gap: 0.5rem;
+            font-size: 0.875rem;
+            line-height: 1.6;
+            padding: 0.75rem;
+            background: var(--muted);
+            border-radius: var(--radius);
+            transition: all 0.2s;
+        }
+
+        .insight-item:hover {
+            background: oklch(from var(--muted) calc(l + 0.02) c h);
+            transform: translateX(4px);
+        }
+
+        .insight-bullet {
+            flex-shrink: 0;
+            margin-top: 0.125rem;
+        }
+
+        /* Severity badges */
+        .severity-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.25rem;
+            padding: 0.125rem 0.5rem;
+            border-radius: var(--radius-sm);
+            font-size: 0.6875rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.025em;
+            margin-left: 0.5rem;
+        }
+
+        .severity-critical {
+            background: oklch(from var(--destructive) l c h / 0.1);
+            color: var(--destructive);
+        }
+
+        .severity-high {
+            background: oklch(from var(--accent) l c h / 0.1);
+            color: var(--accent);
+        }
+
+        .severity-medium {
+            background: oklch(from var(--primary) l c h / 0.1);
+            color: var(--primary);
+        }
+
+        /* Buttons */
+        .btn {
+            padding: 0.625rem 1.25rem;
+            border-radius: var(--radius);
+            font-weight: 500;
+            font-size: 0.875rem;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            cursor: pointer;
+            border: none;
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: var(--primary-foreground);
+            box-shadow: var(--shadow-xs);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-1px);
+            box-shadow: var(--shadow-sm);
+            background: oklch(from var(--primary) calc(l + 0.03) c h);
+        }
+
+        .btn-primary:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn-secondary {
+            background: var(--secondary);
+            color: var(--secondary-foreground);
+        }
+
+        .btn-secondary:hover {
+            background: oklch(from var(--secondary) calc(l + 0.03) c h);
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, #10b981, #059669);
+            color: white;
+            box-shadow: var(--shadow-xs);
+        }
+
+        .btn-success:hover {
+            transform: translateY(-1px);
+            box-shadow: var(--shadow-sm);
+        }
+
+        /* Duplicate detection */
+        .duplicate-warning {
+            background: oklch(from var(--accent) l c h / 0.1);
+            border: 1px solid var(--accent);
+            border-radius: var(--radius-lg);
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .duplicate-header {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            margin-bottom: 1rem;
+        }
+
+        .duplicate-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: var(--radius);
+            background: var(--accent);
+            color: var(--accent-foreground);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .duplicate-list {
+            space-y: 0.75rem;
+            margin-bottom: 1rem;
+        }
+
+        .duplicate-item {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 1rem;
+            display: flex;
+            justify-content: between;
+            align-items: center;
+            transition: all 0.2s;
+            cursor: pointer;
+        }
+
+        .duplicate-item:hover {
+            border-color: var(--accent);
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-md);
+        }
+
+        .similarity-score {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--accent);
+        }
+
+        /* Loading state */
+        .loading-overlay {
+            position: absolute;
+            inset: 0;
+            background: oklch(from var(--background) l c h / 0.8);
+            backdrop-filter: blur(4px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: var(--radius-lg);
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s;
+        }
+
+        .loading-overlay.active {
+            opacity: 1;
+            pointer-events: all;
+        }
+
+        .loading-spinner {
+            width: 48px;
+            height: 48px;
+            border: 4px solid var(--muted);
+            border-top-color: var(--primary);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Animations */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateX(-20px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+
+        .fade-in {
+            opacity: 0;
+            animation: fadeIn 0.5s ease forwards;
+        }
+
+        .slide-in {
+            opacity: 0;
+            animation: slideIn 0.5s ease forwards;
+        }
+
+        .stagger-1 { animation-delay: 0.1s; }
+        .stagger-2 { animation-delay: 0.2s; }
+        .stagger-3 { animation-delay: 0.3s; }
+        .stagger-4 { animation-delay: 0.4s; }
+
+        /* Icon styles */
+        .icon-sm { width: 16px; height: 16px; }
+        .icon-xs { width: 14px; height: 14px; }
+
+        /* Editor toolbar */
+        .editor-toolbar {
+            display: flex;
+            justify-content: between;
+            align-items: center;
+            padding: 0.75rem 1rem;
+            background: var(--muted);
+            border-radius: var(--radius) var(--radius) 0 0;
+            border: 1px solid var(--border);
+            border-bottom: none;
+        }
+
+        .editor-title {
+            font-weight: 600;
+            font-size: 0.875rem;
+        }
+
+        .char-count {
+            font-size: 0.75rem;
+            color: var(--muted-foreground);
+            font-family: var(--font-mono);
+        }
+
+        /* Quality dimensions */
+        .dimensions-grid {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 1rem;
+            margin-top: 1.5rem;
+        }
+
+        .dimension-item {
+            text-align: center;
+        }
+
+        .dimension-score {
+            width: 60px;
+            height: 60px;
+            margin: 0 auto 0.5rem;
+            border-radius: var(--radius);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 1.125rem;
+            position: relative;
+            background: var(--muted);
+        }
+
+        .dimension-score::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            border-radius: var(--radius);
+            border: 3px solid currentColor;
+            opacity: 0.2;
+        }
+
+        .dimension-score.high {
+            color: #10b981;
+            background: oklch(from #10b981 l c h / 0.1);
+        }
+
+        .dimension-score.medium {
+            color: var(--primary);
+            background: oklch(from var(--primary) l c h / 0.1);
+        }
+
+        .dimension-score.low {
+            color: var(--destructive);
+            background: oklch(from var(--destructive) l c h / 0.1);
+        }
+
+        .dimension-label {
+            font-size: 0.75rem;
+            color: var(--muted-foreground);
+            font-weight: 500;
+        }
+    </style>
+</head>
+<body>
+    <div class="main-container min-h-screen">
+        <!-- Header -->
+        <header class="header-blur border-b border-border/50 sticky top-0 z-50">
+            <div class="max-w-7xl mx-auto px-6 py-4">
+                <div class="flex justify-between items-center">
+                    <div class="flex items-center gap-10">
+                        <h1 class="logo">speclinter</h1>
+                        <nav class="flex gap-6">
+                            <a href="#" class="text-muted-foreground hover:text-foreground transition-colors">Dashboard</a>
+                            <a href="#" class="text-foreground font-medium">New Analysis</a>
+                        </nav>
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <button class="btn btn-secondary">
+                            <i data-lucide="save" class="icon-sm"></i>
+                            Save Draft
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="max-w-7xl mx-auto px-6 py-8">
+            <!-- Page Title -->
+            <div class="mb-8 fade-in">
+                <h1 class="text-2xl font-bold mb-2">Specification Analysis</h1>
+                <p class="text-muted-foreground">Enter your specification below and let AI analyze its quality</p>
+            </div>
+
+            <!-- Duplicate Warning (shown when similar specs detected) -->
+            <div class="duplicate-warning fade-in" style="display: none;">
+                <div class="duplicate-header">
+                    <div class="duplicate-icon">
+                        <i data-lucide="alert-triangle" class="w-5 h-5"></i>
+                    </div>
+                    <div>
+                        <h3 class="font-semibold mb-1">Similar Specifications Detected</h3>
+                        <p class="text-sm text-muted-foreground">We found existing features that might overlap with your specification</p>
+                    </div>
+                </div>
+                <div class="duplicate-list">
+                    <div class="duplicate-item">
+                        <div>
+                            <div class="font-medium">User Authentication Flow</div>
+                            <div class="text-sm text-muted-foreground">REQ-001 • Created 2 weeks ago</div>
+                        </div>
+                        <div class="text-right">
+                            <div class="similarity-score">87%</div>
+                            <div class="text-xs text-muted-foreground">similarity</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="flex gap-2">
+                    <button class="btn btn-primary">
+                        <i data-lucide="git-merge" class="icon-sm"></i>
+                        Merge with Existing
+                    </button>
+                    <button class="btn btn-secondary">
+                        <i data-lucide="file-plus" class="icon-sm"></i>
+                        Create New Anyway
+                    </button>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-3 gap-6">
+                <!-- Left Column: Editor -->
+                <div class="col-span-2 space-y-4">
+                    <div class="fade-in stagger-1">
+                        <div class="editor-toolbar">
+                            <span class="editor-title">Specification Input</span>
+                            <span class="char-count">0 / 5000 characters</span>
+                        </div>
+                        <div class="relative">
+                            <textarea 
+                                class="spec-editor" 
+                                placeholder="Enter your specification here...
+
+Example:
+As a user, I want to be able to reset my password securely. The system should send a password reset link to my registered email address. The link should expire after 24 hours for security. Users should be able to set a new password that meets our security requirements (minimum 8 characters, at least one uppercase, one lowercase, one number, and one special character)."
+                            ></textarea>
+                            <div class="loading-overlay">
+                                <div class="loading-spinner"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="flex justify-between items-center fade-in stagger-2">
+                        <div class="text-sm text-muted-foreground">
+                            <i data-lucide="info" class="icon-xs inline mr-1"></i>
+                            Tip: Be specific about user stories, acceptance criteria, and edge cases
+                        </div>
+                        <button class="btn btn-primary" id="analyzeBtn">
+                            <i data-lucide="sparkles" class="icon-sm"></i>
+                            Analyze Specification
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Right Column: Grade Display -->
+                <div class="fade-in stagger-2">
+                    <div class="insight-card">
+                        <div class="grade-display">
+                            <div class="grade-circle grade-f" id="gradeCircle">
+                                <span id="gradeText">—</span>
+                            </div>
+                            <div class="quality-score" id="qualityScore">Quality Score: —</div>
+                            <div class="quality-label">Specification Grade</div>
+                            <div class="quality-progress">
+                                <div class="quality-progress-fill" id="progressFill" style="width: 0%"></div>
+                            </div>
+                        </div>
+
+                        <!-- Quality Dimensions -->
+                        <div class="dimensions-grid" id="dimensionsGrid" style="display: none;">
+                            <div class="dimension-item">
+                                <div class="dimension-score high">85</div>
+                                <div class="dimension-label">Clarity</div>
+                            </div>
+                            <div class="dimension-item">
+                                <div class="dimension-score high">92</div>
+                                <div class="dimension-label">Complete</div>
+                            </div>
+                            <div class="dimension-item">
+                                <div class="dimension-score medium">78</div>
+                                <div class="dimension-label">Testable</div>
+                            </div>
+                            <div class="dimension-item">
+                                <div class="dimension-score high">88</div>
+                                <div class="dimension-label">Feasible</div>
+                            </div>
+                            <div class="dimension-item">
+                                <div class="dimension-score medium">75</div>
+                                <div class="dimension-label">Value</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- AI Insights Section (shown after analysis) -->
+            <div class="grid grid-cols-3 gap-6 mt-6" id="insightsSection" style="display: none;">
+                <!-- Strengths -->
+                <div class="insight-card slide-in">
+                    <div class="insight-header">
+                        <div class="insight-icon strengths">
+                            <i data-lucide="check-circle" class="icon-sm"></i>
+                        </div>
+                        <h3 class="insight-title">Strengths</h3>
+                    </div>
+                    <ul class="insight-list">
+                        <li class="insight-item">
+                            <i data-lucide="check" class="icon-xs insight-bullet" style="color: var(--primary)"></i>
+                            <span>Clear user story format with well-defined actor and goal</span>
+                        </li>
+                        <li class="insight-item">
+                            <i data-lucide="check" class="icon-xs insight-bullet" style="color: var(--primary)"></i>
+                            <span>Specific security requirements for password complexity</span>
+                        </li>
+                        <li class="insight-item">
+                            <i data-lucide="check" class="icon-xs insight-bullet" style="color: var(--primary)"></i>
+                            <span>Time-based expiration adds security consideration</span>
+                        </li>
+                    </ul>
+                </div>
+
+                <!-- Issues -->
+                <div class="insight-card slide-in stagger-1">
+                    <div class="insight-header">
+                        <div class="insight-icon issues">
+                            <i data-lucide="alert-circle" class="icon-sm"></i>
+                        </div>
+                        <h3 class="insight-title">Issues</h3>
+                    </div>
+                    <ul class="insight-list">
+                        <li class="insight-item">
+                            <i data-lucide="x" class="icon-xs insight-bullet" style="color: var(--destructive)"></i>
+                            <span>Missing edge case: What happens if email doesn't exist?
+                                <span class="severity-badge severity-high">High</span>
+                            </span>
+                        </li>
+                        <li class="insight-item">
+                            <i data-lucide="x" class="icon-xs insight-bullet" style="color: var(--destructive)"></i>
+                            <span>No mention of rate limiting for security
+                                <span class="severity-badge severity-critical">Critical</span>
+                            </span>
+                        </li>
+                        <li class="insight-item">
+                            <i data-lucide="x" class="icon-xs insight-bullet" style="color: var(--destructive)"></i>
+                            <span>Unclear how users access the reset flow
+                                <span class="severity-badge severity-medium">Medium</span>
+                            </span>
+                        </li>
+                    </ul>
+                </div>
+
+                <!-- Improvements -->
+                <div class="insight-card slide-in stagger-2">
+                    <div class="insight-header">
+                        <div class="insight-icon improvements">
+                            <i data-lucide="lightbulb" class="icon-sm"></i>
+                        </div>
+                        <h3 class="insight-title">Improvements</h3>
+                    </div>
+                    <ul class="insight-list">
+                        <li class="insight-item">
+                            <i data-lucide="arrow-right" class="icon-xs insight-bullet" style="color: var(--accent)"></i>
+                            <span>Add acceptance criteria for email delivery confirmation</span>
+                        </li>
+                        <li class="insight-item">
+                            <i data-lucide="arrow-right" class="icon-xs insight-bullet" style="color: var(--accent)"></i>
+                            <span>Specify behavior for expired or invalid reset tokens</span>
+                        </li>
+                        <li class="insight-item">
+                            <i data-lucide="arrow-right" class="icon-xs insight-bullet" style="color: var(--accent)"></i>
+                            <span>Include accessibility requirements for the reset form</span>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Action Buttons (shown after analysis) -->
+            <div class="flex justify-center gap-3 mt-8" id="actionButtons" style="display: none;">
+                <button class="btn btn-secondary">
+                    <i data-lucide="refresh-cw" class="icon-sm"></i>
+                    Refine Specification
+                </button>
+                <button class="btn btn-success" id="generateTasksBtn">
+                    <i data-lucide="list-checks" class="icon-sm"></i>
+                    Generate Tasks
+                </button>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        lucide.createIcons();
+        
+        // Character counter
+        const editor = document.querySelector('.spec-editor');
+        const charCount = document.querySelector('.char-count');
+        
+        editor.addEventListener('input', () => {
+            const count = editor.value.length;
+            charCount.textContent = `${count} / 5000 characters`;
+        });
+
+        // Analyze button click simulation
+        const analyzeBtn = document.getElementById('analyzeBtn');
+        const loadingOverlay = document.querySelector('.loading-overlay');
+        const insightsSection = document.getElementById('insightsSection');
+        const actionButtons = document.getElementById('actionButtons');
+        const gradeCircle = document.getElementById('gradeCircle');
+        const gradeText = document.getElementById('gradeText');
+        const qualityScore = document.getElementById('qualityScore');
+        const progressFill = document.getElementById('progressFill');
+        const dimensionsGrid = document.getElementById('dimensionsGrid');
+        const generateTasksBtn = document.getElementById('generateTasksBtn');
+
+        analyzeBtn.addEventListener('click', () => {
+            if (editor.value.trim().length < 50) {
+                alert('Please enter at least 50 characters to analyze');
+                return;
+            }
+
+            // Show loading
+            loadingOverlay.classList.add('active');
+            
+            // Simulate analysis
+            setTimeout(() => {
+                loadingOverlay.classList.remove('active');
+                
+                // Update grade
+                gradeCircle.className = 'grade-circle grade-b';
+                gradeText.textContent = 'B';
+                qualityScore.textContent = 'Quality Score: 82/100';
+                progressFill.style.width = '82%';
+                
+                // Show dimensions
+                dimensionsGrid.style.display = 'grid';
+                
+                // Show insights and actions
+                insightsSection.style.display = 'grid';
+                actionButtons.style.display = 'flex';
+                
+                // Only enable generate tasks for B grade or higher
+                generateTasksBtn.disabled = false;
+            }, 2000);
+        });
+    </script>
+</body>
+</html>
