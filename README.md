@@ -127,6 +127,9 @@ pnpm install && pnpm build
 # Test server starts
 node dist/cli.js serve
 
+# Or run full validation plus MCP startup probe
+./start.sh --check
+
 # In your AI IDE, try:
 "Initialize SpecLinter in my project"
 "Parse this spec: Create a user login form"
