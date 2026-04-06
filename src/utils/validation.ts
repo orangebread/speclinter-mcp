@@ -3,7 +3,7 @@
  * Provides consistent validation patterns across all tools
  */
 
-import { promises as fs } from 'fs';
+import { constants as fsConstants, promises as fs } from 'fs';
 import path from 'path';
 import { z } from 'zod';
 import { resolveProjectRoot } from '../tools.js';
@@ -220,9 +220,9 @@ export function validateAIAnalysis<T>(
  */
 export async function validateFileAccess(filePath: string, mode: 'read' | 'write' | 'execute' = 'read'): Promise<ValidationResult> {
   try {
-    const accessMode = mode === 'read' ? fs.constants.R_OK :
-                      mode === 'write' ? fs.constants.W_OK :
-                      fs.constants.X_OK;
+    const accessMode = mode === 'read' ? fsConstants.R_OK :
+                      mode === 'write' ? fsConstants.W_OK :
+                      fsConstants.X_OK;
 
     await fs.access(filePath, accessMode);
     return { success: true };

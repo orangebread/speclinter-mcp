@@ -12,6 +12,9 @@ export class ContextUpdater {
   // Option A: Full AI Generation - Write AI-generated content directly
   async updateContextFilesFromAI(analysis: AICodebaseAnalysis, contextFiles: AIContextFiles): Promise<string[]> {
     const updatedFiles: string[] = [];
+    // Currently unused in Option A; reserved for future advanced templating
+    void analysis;
+
 
     // Ensure context directory exists
     const contextDir = path.join(this.speclinterDir, 'context');

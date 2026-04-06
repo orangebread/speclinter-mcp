@@ -15,7 +15,10 @@ import {
   MergeResult,
   SaveFeatureOptions,
   SaveFeatureResult,
-  ExistingFeature
+  ExistingFeature,
+  ReverseEngineeredFeatureRecord,
+  ReverseSpecStateSnapshot,
+  ReverseSpecStateWrite
 } from '../types/index.js';
 
 export class Storage {
@@ -24,7 +27,7 @@ export class Storage {
   private rootDir: string;
   private speclinterDir: string;
   private tasksDir: string;
-  private initialized: boolean = false;
+
 
   constructor(rootDir?: string) {
     this.rootDir = rootDir || process.cwd();
@@ -59,7 +62,10 @@ export class Storage {
     // Create tables
     this.createTables();
 
-    this.initialized = true;
+    // Run schema migrations
+    this.runMigrations();
+
+
   }
 
   async getConfig(): Promise<Config> {
@@ -78,6 +84,9 @@ export class Storage {
         grade TEXT NOT NULL,
         score INTEGER NOT NULL,
         embedding BLOB,
+        source_type TEXT DEFAULT 'specification',
+        discovery_confidence REAL,
+        file_mappings TEXT,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP
       )
     `);
@@ -132,18 +141,169 @@ export class Storage {
         FOREIGN KEY (feature_name) REFERENCES features(name)
       )
     `);
+
+    this.db.exec(`
+      CREATE TABLE IF NOT EXISTS reverse_spec_state (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        last_analysis DATETIME NOT NULL,
+        analyzed_files TEXT NOT NULL,
+        discovered_features TEXT NOT NULL,
+        analysis_scope TEXT NOT NULL,
+        confidence_threshold REAL NOT NULL,
+        analysis_depth TEXT NOT NULL,
+        total_files_analyzed INTEGER NOT NULL,
+        features_discovered INTEGER NOT NULL,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+  }
+
+  private runMigrations(): void {
+    if (!this.db) throw new Error('Database not initialized');
+
+    // Check if reverse spec columns exist in features table
+    try {
+      const result = this.db.prepare("PRAGMA table_info(features)").all() as any[];
+      const columnNames = result.map(col => col.name);
+
+      if (!columnNames.includes('source_type')) {
+        this.db.exec(`ALTER TABLE features ADD COLUMN source_type TEXT DEFAULT 'specification'`);
+      }
+
+      if (!columnNames.includes('discovery_confidence')) {
+        this.db.exec(`ALTER TABLE features ADD COLUMN discovery_confidence REAL`);
+      }
+
+      if (!columnNames.includes('file_mappings')) {
+        this.db.exec(`ALTER TABLE features ADD COLUMN file_mappings TEXT`);
+      }
+    } catch (error) {
+      // If migration fails, log but don't crash - table might not exist yet
+      console.warn('Schema migration warning:', error instanceof Error ? error.message : 'Unknown error');
+    }
   }
 
   async loadProjectContext(): Promise<ProjectContext | null> {
     if (!this.config) throw new Error('Storage not initialized');
 
-    // AI-generated context files are self-contained and don't need parsing
-    // Return null to indicate no legacy template-based context available
-    // AI tools will read the files directly when needed
-    return null;
+    const contextDir = path.join(this.rootDir, this.config.context.contextDir);
+    const projectPath = path.join(contextDir, 'project.md');
+    const patternsPath = path.join(contextDir, 'patterns.md');
+
+    const [projectContent, patternsContent] = await Promise.all([
+      this.readOptionalFile(projectPath),
+      this.readOptionalFile(patternsPath)
+    ]);
+
+    if (!projectContent && !patternsContent) {
+      return null;
+    }
+
+    const stack = this.parseTechStack(projectContent);
+    const constraints = this.parseSectionBullets(projectContent, 'Project Constraints');
+    const standards = this.parseSectionBullets(projectContent, 'Naming Conventions');
+    const patterns = this.parsePatterns(patternsContent);
+
+    if (
+      Object.keys(stack).length === 0 &&
+      constraints.length === 0 &&
+      standards.length === 0 &&
+      patterns.length === 0
+    ) {
+      return null;
+    }
+
+    return {
+      stack: Object.keys(stack).length > 0 ? stack : undefined,
+      constraints: constraints.length > 0 ? constraints : undefined,
+      standards: standards.length > 0 ? standards : undefined,
+      patterns: patterns.length > 0 ? patterns : undefined
+    };
   }
 
   // Legacy template parsing methods removed - AI generates self-contained context files
+
+  private async readOptionalFile(filePath: string): Promise<string> {
+    try {
+      return await fs.readFile(filePath, 'utf-8');
+    } catch {
+      return '';
+    }
+  }
+
+  private parseTechStack(content: string): Record<string, string> {
+    const section = this.extractSection(content, 'Tech Stack');
+    if (!section) return {};
+
+    const stack: Record<string, string> = {};
+    const bulletRegex = /- \*\*(.+?)\*\*: (.+)/g;
+    let match: RegExpExecArray | null;
+
+    while ((match = bulletRegex.exec(section)) !== null) {
+      const [, key, value] = match;
+      stack[this.slugToCamelCase(key)] = value.trim();
+    }
+
+    return stack;
+  }
+
+  private parseSectionBullets(content: string, heading: string): string[] {
+    const section = this.extractSection(content, heading);
+    if (!section) return [];
+
+    return section
+      .split('\n')
+      .map(line => line.trim())
+      .filter(line => line.startsWith('- '))
+      .map(line => line.replace(/^- /, '').replace(/\*\*/g, '').trim());
+  }
+
+  private parsePatterns(content: string): Array<{ name: string; description: string; anchor: string }> {
+    const patterns: Array<{ name: string; description: string; anchor: string }> = [];
+    const patternRegex = /^###\s+(.+?)(?:\s+\(Confidence: .*?\))?\n([\s\S]*?)(?=^###\s+|^##\s+|$)/gm;
+    let match: RegExpExecArray | null;
+
+    while ((match = patternRegex.exec(content)) !== null) {
+      const [, name, body] = match;
+      const description = body
+        .split('\n')
+        .map(line => line.trim())
+        .find(line => line.length > 0 && !line.startsWith('**') && !line.startsWith('```'));
+
+      if (!description) continue;
+
+      patterns.push({
+        name: name.trim(),
+        description,
+        anchor: name.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-')
+      });
+    }
+
+    return patterns;
+  }
+
+  private extractSection(content: string, heading: string): string {
+    const escapedHeading = heading.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const regex = new RegExp(`#{2,3}\\s+${escapedHeading}\\s*\\n([\\s\\S]*?)(?=\\n#{2,3}\\s+|$)`);
+    const match = content.match(regex);
+    return match?.[1]?.trim() ?? '';
+  }
+
+  private slugToCamelCase(value: string): string {
+    const normalized = value
+      .trim()
+      .replace(/[^a-zA-Z0-9]+/g, ' ')
+      .split(' ')
+      .filter(Boolean);
+
+    return normalized
+      .map((part, index) =>
+        index === 0
+          ? part.charAt(0).toLowerCase() + part.slice(1)
+          : part.charAt(0).toUpperCase() + part.slice(1)
+      )
+      .join('');
+  }
 
   async saveFeature(
     featureName: string,
@@ -284,7 +444,7 @@ export class Storage {
 
     try {
       // Import AI tools dynamically to avoid circular dependencies
-      const { handleGenerateGherkinPrepare, handleProcessGherkinAnalysis } = await import('../ai-tools.js');
+      const { handleGenerateGherkinPrepare } = await import('../ai-tools.js');
 
       // Step 1: Prepare AI analysis
       const prepareResult = await handleGenerateGherkinPrepare({
@@ -569,6 +729,92 @@ ${scenarios.join('\n\n')}
     return features;
   }
 
+  async getFeatureCount(): Promise<number> {
+    if (!this.db) throw new Error('Database not initialized');
+
+    const result = this.db.prepare(`
+      SELECT COUNT(*) as count FROM features
+    `).get() as { count: number };
+
+    return result.count;
+  }
+
+  async getFeatureNames(): Promise<string[]> {
+    if (!this.db) throw new Error('Database not initialized');
+
+    const features = this.db.prepare(`
+      SELECT name FROM features
+    `).all() as Array<{ name: string }>;
+
+    return features.map((feature) => feature.name);
+  }
+
+  async getLatestReverseSpecState(): Promise<ReverseSpecStateSnapshot | null> {
+    if (!this.db) throw new Error('Database not initialized');
+
+    const result = this.db.prepare(`
+      SELECT * FROM reverse_spec_state
+      ORDER BY created_at DESC
+      LIMIT 1
+    `).get() as {
+      last_analysis: string;
+      analyzed_files: string;
+      discovered_features: string;
+      analysis_scope: string;
+    } | undefined;
+
+    if (!result) {
+      return null;
+    }
+
+    return {
+      lastAnalysis: result.last_analysis,
+      analyzedFiles: JSON.parse(result.analyzed_files),
+      discoveredFeatures: JSON.parse(result.discovered_features),
+      analysisScope: result.analysis_scope
+    };
+  }
+
+  async saveReverseEngineeredFeature(feature: ReverseEngineeredFeatureRecord): Promise<void> {
+    if (!this.db) throw new Error('Database not initialized');
+
+    const featureId = `feat_reverse_${Date.now()}`;
+    this.db.prepare(`
+      INSERT OR REPLACE INTO features (
+        id, name, spec, grade, score, source_type, discovery_confidence, file_mappings
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    `).run(
+      featureId,
+      feature.name,
+      feature.userStory,
+      'B',
+      Math.round(feature.confidence * 100),
+      'reverse_engineered',
+      feature.confidence,
+      JSON.stringify(feature.implementationMap)
+    );
+  }
+
+  async appendReverseSpecState(state: ReverseSpecStateWrite): Promise<void> {
+    if (!this.db) throw new Error('Database not initialized');
+
+    this.db.prepare(`
+      INSERT INTO reverse_spec_state (
+        last_analysis, analyzed_files, discovered_features, analysis_scope,
+        confidence_threshold, analysis_depth, total_files_analyzed, features_discovered
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    `).run(
+      state.lastAnalysis ?? new Date().toISOString(),
+      JSON.stringify(state.analyzedFiles ?? {}),
+      JSON.stringify(state.discoveredFeatures),
+      state.analysisScope,
+      state.confidenceThreshold,
+      state.analysisDepth,
+      state.totalFilesAnalyzed,
+      state.featuresDiscovered
+    );
+  }
+
   async saveFeatureFromAI(
     featureName: string,
     tasks: Task[],
@@ -577,6 +823,9 @@ ${scenarios.join('\n\n')}
     options: SaveFeatureOptions = {}
   ): Promise<SaveFeatureResult> {
     if (!this.db || !this.config) throw new Error('Storage not initialized');
+
+    // Currently unused; reserved for storing AI-specific metadata in future
+    void aiAnalysis;
 
     // For now, use the existing saveFeature method
     // In the future, we could store AI-specific metadata
@@ -931,5 +1180,10 @@ ${scenarios.join('\n\n')}
     if (!task) return null;
 
     return this.dbTaskToTask(task);
+  }
+
+  close(): void {
+    this.db?.close();
+    this.db = null;
   }
 }

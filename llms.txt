@@ -11,8 +11,8 @@ To use SpecLinter as an MCP server, add this to your AI IDE's MCP configuration:
   "mcpServers": {
     "speclinter": {
       "command": "node",
-      "args": ["/path/to/speclinter-mcp/dist/cli.js", "serve"],
-      "cwd": "/path/to/speclinter-mcp"
+      "args": ["/path/to/dist/cli.js", "serve"],
+      "cwd": "/path/to"
     }
   }
 }

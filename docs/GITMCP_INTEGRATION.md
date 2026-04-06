@@ -68,8 +68,8 @@ Once configured, you can ask your AI:
   "mcpServers": {
     "speclinter": {
       "command": "node",
-      "args": ["/path/to/speclinter-mcp/dist/cli.js", "serve"],
-      "cwd": "/path/to/speclinter-mcp"
+      "args": ["/path/to/dist/cli.js", "serve"],
+      "cwd": "/path/to"
     },
     "speclinter-docs": {
       "command": "npx",

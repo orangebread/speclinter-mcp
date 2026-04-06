@@ -8,6 +8,45 @@ import path from 'path';
 import { Config, ConfigSchema, DEFAULT_CONFIG } from '../types/config.js';
 import { ValidationResult, validateConfigThresholds } from './validation.js';
 
+type DeepPartial<T> = {
+  [K in keyof T]?: T[K] extends Array<infer U>
+    ? U[]
+    : T[K] extends object
+      ? DeepPartial<T[K]>
+      : T[K];
+};
+
+function isPlainObject(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function deepMerge<T>(base: T, updates: DeepPartial<T>): T {
+  if (Array.isArray(base)) {
+    return (Array.isArray(updates) ? [...updates] : [...base]) as T;
+  }
+
+  if (!isPlainObject(base) || !isPlainObject(updates)) {
+    return (updates ?? base) as T;
+  }
+
+  const merged: Record<string, unknown> = { ...base };
+
+  for (const [key, value] of Object.entries(updates)) {
+    if (value === undefined) {
+      continue;
+    }
+
+    const currentValue = merged[key];
+    merged[key] = isPlainObject(currentValue) && isPlainObject(value)
+      ? deepMerge(currentValue, value)
+      : Array.isArray(value)
+        ? [...value]
+        : value;
+  }
+
+  return merged as T;
+}
+
 /**
  * Configuration manager for consistent config access
  */
@@ -130,7 +169,7 @@ export class ConfigManager {
     operation: string = 'operation'
   ): Promise<ValidationResult> {
     const { threshold, isValid } = await this.getQualityThreshold(projectRoot);
-    
+
     if (!isValid) {
       return {
         success: false,
@@ -155,7 +194,7 @@ export class ConfigManager {
     operation: string = 'operation'
   ): Promise<ValidationResult> {
     const { threshold, isValid } = await this.getConfidenceThreshold(projectRoot);
-    
+
     if (!isValid) {
       return {
         success: false,
@@ -179,8 +218,9 @@ export class ConfigManager {
     maxFileSize: number;
     maxTotalSize: number;
   }> {
-    const config = await this.getConfig(projectRoot);
-    
+    // projectRoot reserved for future per-project overrides
+    void projectRoot;
+
     // These could be added to config schema in the future
     // For now, use reasonable defaults
     return {
@@ -239,12 +279,12 @@ export class ConfigManager {
    */
   static async updateConfig(
     projectRoot: string,
-    updates: Partial<Config>
+    updates: DeepPartial<Config>
   ): Promise<ValidationResult> {
     try {
       const currentConfig = await this.getConfig(projectRoot);
-      const newConfig = { ...currentConfig, ...updates };
-      
+      const newConfig = deepMerge(currentConfig, updates);
+
       // Validate the new configuration
       const validation = this.validateConfig(newConfig);
       if (!validation.success) {
@@ -254,7 +294,7 @@ export class ConfigManager {
       // Write the updated configuration
       const configPath = path.join(projectRoot, '.speclinter', 'config.json');
       await fs.writeFile(configPath, JSON.stringify(newConfig, null, 2));
-      
+
       // Clear cache to force reload
       this.clearCache(projectRoot);
 

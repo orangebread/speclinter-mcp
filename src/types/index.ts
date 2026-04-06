@@ -112,6 +112,38 @@ export const SaveFeatureResultSchema = z.object({
   mergeResult: MergeResultSchema.optional()
 });
 
+export const ReverseEngineeredFeatureRecordSchema = z.object({
+  name: z.string(),
+  userStory: z.string(),
+  confidence: z.number(),
+  implementationMap: z.object({
+    featureId: z.string(),
+    confidence: z.number(),
+    coreFiles: z.array(z.unknown()),
+    supportingFiles: z.array(z.unknown()),
+    testFiles: z.array(z.unknown()),
+    integrationPoints: z.array(z.unknown())
+  })
+});
+
+export const ReverseSpecStateSnapshotSchema = z.object({
+  lastAnalysis: z.string(),
+  analyzedFiles: z.unknown(),
+  discoveredFeatures: z.array(z.string()),
+  analysisScope: z.string()
+});
+
+export const ReverseSpecStateWriteSchema = z.object({
+  discoveredFeatures: z.array(z.string()),
+  analysisScope: z.string(),
+  confidenceThreshold: z.number(),
+  analysisDepth: z.string(),
+  totalFilesAnalyzed: z.number(),
+  featuresDiscovered: z.number(),
+  analyzedFiles: z.unknown().optional(),
+  lastAnalysis: z.string().optional()
+});
+
 export type TaskStatus = z.infer<typeof TaskStatusSchema>;
 export type Task = z.infer<typeof TaskSchema>;
 export type ParseResult = z.infer<typeof ParseResultSchema>;
@@ -124,3 +156,6 @@ export type MergeResult = z.infer<typeof MergeResultSchema>;
 export type SaveFeatureOptions = z.infer<typeof SaveFeatureOptionsSchema>;
 export type SaveFeatureResult = z.infer<typeof SaveFeatureResultSchema>;
 export type ExistingFeature = DuplicateInfo['existingFeature'];
+export type ReverseEngineeredFeatureRecord = z.infer<typeof ReverseEngineeredFeatureRecordSchema>;
+export type ReverseSpecStateSnapshot = z.infer<typeof ReverseSpecStateSnapshotSchema>;
+export type ReverseSpecStateWrite = z.infer<typeof ReverseSpecStateWriteSchema>;

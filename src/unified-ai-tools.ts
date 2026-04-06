@@ -1,5 +1,3 @@
-import { promises as fs } from 'fs';
-import path from 'path';
 import {
   handleAnalyzeCodebase,
   handleProcessCodebaseAnalysis,
@@ -16,14 +14,13 @@ import {
   handleGenerateTasksFromSpec,
   handleProcessTaskGeneration,
   handleAnalyzeSpecComprehensive,
-  handleProcessComprehensiveSpecAnalysis
+  handleProcessComprehensiveSpecAnalysis,
+  handleProcessReverseSpecAnalysis,
+  handleReverseSpecAnalysis
 } from './ai-tools.js';
-import { resolveProjectRoot } from './tools.js';
 import {
   validateProjectContext,
-  ValidationResult,
   createErrorResponse,
-  validateResourceLimits,
   validateInputSanitization,
   ConcurrencyValidator
 } from './utils/validation.js';
@@ -40,33 +37,40 @@ interface UnifiedToolResponse {
   [key: string]: any;
 }
 
-/**
- * Handles AI analysis by returning prompts for the MCP AI assistant to process
- * This leverages the AI assistant calling the MCP server rather than external AI APIs
- */
-function handleAIAnalysisRequest(prepareResult: any): UnifiedToolResponse {
-  // Check if this is a prepare result that needs AI analysis
-  if (!prepareResult.success || prepareResult.action !== 'ai_analysis_required') {
-    return {
-      success: false,
-      error: 'Invalid prepare result for AI analysis',
-      debug_info: 'Prepare step must return action: ai_analysis_required'
-    };
+function createAIContinuationResponse(
+  prepareResult: any,
+  publicToolName: string,
+  originalArgs: Record<string, any>
+): UnifiedToolResponse {
+  const continuationArgs: Record<string, any> = {
+    ...originalArgs,
+    project_root: prepareResult.project_root ?? originalArgs.project_root,
+    feature_name: prepareResult.feature_name ?? originalArgs.feature_name,
+    original_spec: prepareResult.original_spec ?? originalArgs.original_spec,
+    context: prepareResult.input_context ?? originalArgs.context
+  };
+
+  if (prepareResult.task_id) {
+    continuationArgs.task_id = prepareResult.task_id;
   }
 
-  // Return the AI analysis prompt for the MCP AI assistant to process
+  if (prepareResult.follow_up_tool === 'process_reverse_spec_analysis') {
+    continuationArgs.include_reverse_spec = true;
+    continuationArgs.context = prepareResult.context ?? originalArgs.context;
+  }
+
   return {
-    success: false, // Indicates this needs AI processing
+    success: true,
+    state: 'needs_ai_analysis',
     action: 'ai_analysis_required',
-    analysis_prompt: prepareResult.analysis_prompt,
+    analysis_prompt: prepareResult.analysis_prompt ?? prepareResult.validation_prompt,
     schema: prepareResult.schema,
-    follow_up_tool: prepareResult.follow_up_tool,
-    context_data: prepareResult.context_data || {},
+    continuation_tool: publicToolName,
+    continuation_args: continuationArgs,
     instructions: [
-      'Please analyze the provided data using the prompt below',
-      'Return your analysis in JSON format matching the specified schema',
-      `Expected schema: ${prepareResult.schema}`,
-      'Use the follow-up tool with your analysis as the "analysis" parameter'
+      'Analyze the provided prompt and return JSON matching the specified schema.',
+      `Call ${publicToolName} again with the same arguments plus the analysis result in the "analysis" field.`,
+      `Expected schema: ${prepareResult.schema}`
     ]
   };
 }
@@ -82,7 +86,7 @@ function handleUnifiedError(error: any, step: string, context?: string): Unified
 
 /**
  * Unified Codebase Analysis Tool
- * Combines prepare and process steps for comprehensive codebase analysis
+ * Exposes a single public MCP entrypoint for codebase analysis.
  */
 export async function handleAnalyzeCodebaseUnified(args: any): Promise<UnifiedToolResponse> {
   try {
@@ -106,7 +110,22 @@ export async function handleAnalyzeCodebaseUnified(args: any): Promise<UnifiedTo
     // If analysis is provided, skip prepare step (advanced usage)
     if (args.analysis) {
       try {
-        return await handleProcessCodebaseAnalysis(args);
+        // Check if this should be reverse spec analysis based on include_reverse_spec parameter
+        const isReverseSpec = args.include_reverse_spec === true;
+
+        if (isReverseSpec) {
+          // Route to reverse spec analysis
+          return {
+            ...await handleProcessReverseSpecAnalysis(args),
+            internal_step: 'unified_operation'
+          };
+        } else {
+          // Route to regular codebase analysis
+          return {
+            ...await handleProcessCodebaseAnalysis(args),
+            internal_step: 'unified_operation'
+          };
+        }
       } catch (error) {
         return handleUnifiedError(error, 'process_analysis', 'ai_analysis');
       }
@@ -116,7 +135,7 @@ export async function handleAnalyzeCodebaseUnified(args: any): Promise<UnifiedTo
     const prepareResult = await handleAnalyzeCodebase(args);
     if (!prepareResult.success) {
       return createErrorResponse(
-        new Error(prepareResult.error || 'Preparation failed'),
+        new Error((prepareResult as any).error || 'Preparation failed'),
         'prepare',
         'codebase_analysis_preparation'
       );
@@ -124,14 +143,21 @@ export async function handleAnalyzeCodebaseUnified(args: any): Promise<UnifiedTo
 
     // Step 2: Check if AI analysis is needed
     if (prepareResult.action === 'ai_analysis_required') {
-      return handleAIAnalysisRequest(prepareResult);
+      return createAIContinuationResponse(prepareResult, 'speclinter_analyze_codebase', args);
     }
 
-    // Step 3: Process (internal) - only if no AI analysis needed
-    const processResult = await handleProcessCodebaseAnalysis({
-      ...args,
-      analysis: prepareResult
-    });
+    // Step 3: Process (internal) - only if no AI analysis is required
+    const isReverseSpec = prepareResult.follow_up_tool === 'process_reverse_spec_analysis';
+
+    const processResult = isReverseSpec
+      ? await handleProcessReverseSpecAnalysis({
+          ...args,
+          analysis: prepareResult
+        })
+      : await handleProcessCodebaseAnalysis({
+          ...args,
+          analysis: prepareResult
+        });
 
     return {
       ...processResult,
@@ -144,7 +170,7 @@ export async function handleAnalyzeCodebaseUnified(args: any): Promise<UnifiedTo
 
 /**
  * Unified Specification Parsing Tool
- * Combines prepare and process steps for specification analysis
+ * Exposes a single public MCP entrypoint for specification analysis.
  */
 export async function handleParseSpecUnified(args: any): Promise<UnifiedToolResponse> {
   try {
@@ -183,7 +209,10 @@ export async function handleParseSpecUnified(args: any): Promise<UnifiedToolResp
 
       // If analysis is provided, skip prepare step (advanced usage)
       if (args.analysis) {
-        return await handleProcessSpecAnalysisAI(args);
+        return {
+          ...await handleProcessSpecAnalysisAI(args),
+          internal_step: 'unified_operation'
+        };
       }
 
       // Step 1: Prepare (internal)
@@ -198,7 +227,7 @@ export async function handleParseSpecUnified(args: any): Promise<UnifiedToolResp
 
       // Step 2: Check if AI analysis is needed
       if (prepareResult.action === 'ai_analysis_required') {
-        return handleAIAnalysisRequest(prepareResult);
+        return createAIContinuationResponse(prepareResult, 'speclinter_parse_spec', args);
       }
 
       // Step 3: Process (internal) - only if no AI analysis needed
@@ -222,7 +251,7 @@ export async function handleParseSpecUnified(args: any): Promise<UnifiedToolResp
 
 /**
  * Unified Similarity Analysis Tool
- * Combines prepare and process steps for duplicate feature detection
+ * Exposes a single public MCP entrypoint for duplicate feature detection.
  */
 export async function handleFindSimilarUnified(args: any): Promise<UnifiedToolResponse> {
   try {
@@ -234,7 +263,10 @@ export async function handleFindSimilarUnified(args: any): Promise<UnifiedToolRe
 
     // If analysis is provided, skip prepare step (advanced usage)
     if (args.analysis) {
-      return await handleProcessSimilarityAnalysisAI(args);
+      return {
+        ...await handleProcessSimilarityAnalysisAI(args),
+        internal_step: 'unified_operation'
+      };
     }
 
     // Step 1: Prepare (internal)
@@ -249,7 +281,14 @@ export async function handleFindSimilarUnified(args: any): Promise<UnifiedToolRe
 
     // Step 2: Check if AI analysis is needed
     if (prepareResult.action === 'ai_analysis_required') {
-      return handleAIAnalysisRequest(prepareResult);
+      return createAIContinuationResponse(prepareResult, 'speclinter_find_similar', args);
+    }
+
+    if (!('action' in prepareResult)) {
+      return {
+        ...prepareResult,
+        internal_step: 'unified_operation'
+      };
     }
 
     // Step 3: Process (internal) - only if no AI analysis needed
@@ -269,7 +308,7 @@ export async function handleFindSimilarUnified(args: any): Promise<UnifiedToolRe
 
 /**
  * Unified Implementation Validation Tool
- * Combines prepare and process steps for code quality validation
+ * Exposes a single public MCP entrypoint for implementation validation.
  */
 export async function handleValidateImplementationUnified(args: any): Promise<UnifiedToolResponse> {
   try {
@@ -298,7 +337,10 @@ export async function handleValidateImplementationUnified(args: any): Promise<Un
 
     // If analysis is provided, skip prepare step (advanced usage)
     if (args.analysis) {
-      return await handleValidateImplementationProcess(args);
+      return {
+        ...await handleValidateImplementationProcess(args),
+        internal_step: 'unified_operation'
+      };
     }
 
     // Step 1: Prepare (internal)
@@ -313,7 +355,7 @@ export async function handleValidateImplementationUnified(args: any): Promise<Un
 
     // Step 2: Check if AI analysis is needed
     if (prepareResult.action === 'ai_analysis_required') {
-      return handleAIAnalysisRequest(prepareResult);
+      return createAIContinuationResponse(prepareResult, 'speclinter_validate_implementation', args);
     }
 
     // Step 3: Process (internal) - only if no AI analysis needed
@@ -333,7 +375,7 @@ export async function handleValidateImplementationUnified(args: any): Promise<Un
 
 /**
  * Unified Gherkin Generation Tool
- * Combines prepare and process steps for BDD scenario generation
+ * Exposes a single public MCP entrypoint for BDD scenario generation.
  */
 export async function handleGenerateGherkinUnified(args: any): Promise<UnifiedToolResponse> {
   try {
@@ -345,7 +387,10 @@ export async function handleGenerateGherkinUnified(args: any): Promise<UnifiedTo
 
     // If analysis is provided, skip prepare step (advanced usage)
     if (args.analysis) {
-      return await handleProcessGherkinAnalysis(args);
+      return {
+        ...await handleProcessGherkinAnalysis(args),
+        internal_step: 'unified_operation'
+      };
     }
 
     // Step 1: Prepare (internal)
@@ -360,7 +405,7 @@ export async function handleGenerateGherkinUnified(args: any): Promise<UnifiedTo
 
     // Step 2: Check if AI analysis is needed
     if (prepareResult.action === 'ai_analysis_required') {
-      return handleAIAnalysisRequest(prepareResult);
+      return createAIContinuationResponse(prepareResult, 'speclinter_generate_gherkin', args);
     }
 
     // Step 3: Process (internal) - only if no AI analysis needed
@@ -380,7 +425,7 @@ export async function handleGenerateGherkinUnified(args: any): Promise<UnifiedTo
 
 /**
  * Unified Spec Quality Analysis Tool
- * Combines prepare and process steps for specification quality assessment
+ * Exposes a single public MCP entrypoint for specification quality assessment.
  */
 export async function handleAnalyzeSpecQualityUnified(args: any): Promise<UnifiedToolResponse> {
   try {
@@ -392,7 +437,10 @@ export async function handleAnalyzeSpecQualityUnified(args: any): Promise<Unifie
 
     // If analysis is provided, skip prepare step (advanced usage)
     if (args.analysis) {
-      return await handleProcessSpecQualityAnalysis(args);
+      return {
+        ...await handleProcessSpecQualityAnalysis(args),
+        internal_step: 'unified_operation'
+      };
     }
 
     // Step 1: Prepare (internal)
@@ -407,7 +455,7 @@ export async function handleAnalyzeSpecQualityUnified(args: any): Promise<Unifie
 
     // Step 2: Check if AI analysis is needed
     if (prepareResult.action === 'ai_analysis_required') {
-      return handleAIAnalysisRequest(prepareResult);
+      return createAIContinuationResponse(prepareResult, 'speclinter_analyze_spec_quality', args);
     }
 
     // Step 3: Process (internal) - only if no AI analysis needed
@@ -427,7 +475,7 @@ export async function handleAnalyzeSpecQualityUnified(args: any): Promise<Unifie
 
 /**
  * Unified Task Generation Tool
- * Combines prepare and process steps for task breakdown from specs
+ * Exposes a single public MCP entrypoint for task generation from specs.
  */
 export async function handleGenerateTasksUnified(args: any): Promise<UnifiedToolResponse> {
   try {
@@ -439,7 +487,10 @@ export async function handleGenerateTasksUnified(args: any): Promise<UnifiedTool
 
     // If analysis is provided, skip prepare step (advanced usage)
     if (args.analysis) {
-      return await handleProcessTaskGeneration(args);
+      return {
+        ...await handleProcessTaskGeneration(args),
+        internal_step: 'unified_operation'
+      };
     }
 
     // Step 1: Prepare (internal)
@@ -454,7 +505,7 @@ export async function handleGenerateTasksUnified(args: any): Promise<UnifiedTool
 
     // Step 2: Check if AI analysis is needed
     if (prepareResult.action === 'ai_analysis_required') {
-      return handleAIAnalysisRequest(prepareResult);
+      return createAIContinuationResponse(prepareResult, 'speclinter_generate_tasks', args);
     }
 
     // Step 3: Process (internal) - only if no AI analysis needed
@@ -474,7 +525,7 @@ export async function handleGenerateTasksUnified(args: any): Promise<UnifiedTool
 
 /**
  * Unified Comprehensive Spec Analysis Tool
- * Combines prepare and process steps for complete spec analysis
+ * Exposes a single public MCP entrypoint for comprehensive spec analysis.
  */
 export async function handleAnalyzeSpecComprehensiveUnified(args: any): Promise<UnifiedToolResponse> {
   try {
@@ -486,7 +537,10 @@ export async function handleAnalyzeSpecComprehensiveUnified(args: any): Promise<
 
     // If analysis is provided, skip prepare step (advanced usage)
     if (args.analysis) {
-      return await handleProcessComprehensiveSpecAnalysis(args);
+      return {
+        ...await handleProcessComprehensiveSpecAnalysis(args),
+        internal_step: 'unified_operation'
+      };
     }
 
     // Step 1: Prepare (internal)
@@ -501,7 +555,7 @@ export async function handleAnalyzeSpecComprehensiveUnified(args: any): Promise<
 
     // Step 2: Check if AI analysis is needed
     if (prepareResult.action === 'ai_analysis_required') {
-      return handleAIAnalysisRequest(prepareResult);
+      return createAIContinuationResponse(prepareResult, 'speclinter_analyze_spec_comprehensive', args);
     }
 
     // Step 3: Process (internal) - only if no AI analysis needed
@@ -516,5 +570,55 @@ export async function handleAnalyzeSpecComprehensiveUnified(args: any): Promise<
     };
   } catch (error) {
     return handleUnifiedError(error, 'unified_operation');
+  }
+}
+
+/**
+ * Unified Reverse Specification Discovery Tool
+ * Discovers existing features from codebase and creates speclinter-tasks directories
+ */
+export async function handleReverseSpecUnified(args: any): Promise<UnifiedToolResponse> {
+  try {
+    // Validate project context
+    const validation = await validateProjectContext(args.project_root);
+    if (!validation.success) {
+      return validation;
+    }
+
+    // If analysis is provided, skip prepare step (advanced usage)
+    if (args.analysis) {
+      return {
+        ...await handleProcessReverseSpecAnalysis(args),
+        internal_step: 'unified_operation'
+      };
+    }
+
+    // Step 1: Prepare (internal)
+    const prepareResult = await handleReverseSpecAnalysis(args);
+    if (!prepareResult.success) {
+      return {
+        ...prepareResult,
+        internal_step: 'prepare',
+        debug_info: 'Failed during reverse spec analysis preparation'
+      };
+    }
+
+    // Step 2: Check if AI analysis is needed
+    if (prepareResult.action === 'ai_analysis_required') {
+      return createAIContinuationResponse(prepareResult, 'speclinter_reverse_spec', args);
+    }
+
+    // Step 3: Process (internal) - only if no AI analysis needed
+    const processResult = await handleProcessReverseSpecAnalysis({
+      ...args,
+      analysis: prepareResult
+    });
+
+    return {
+      ...processResult,
+      internal_step: 'unified_operation'
+    };
+  } catch (error) {
+    return handleUnifiedError(error, 'unified_operation', 'reverse_spec_analysis');
   }
 }

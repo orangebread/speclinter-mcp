@@ -22,18 +22,20 @@ Complete reference for all Model Context Protocol (MCP) tools provided by SpecLi
 **What it creates**:
 - `.speclinter/` directory with configuration and database
 - `speclinter-tasks/` directory for feature tasks
-- Project context files (project.md, patterns.md, architecture.md)
+- A context directory that is populated after codebase analysis
 
 ### Codebase Analysis Tools
 
-#### `speclinter_analyze_codebase_prepare`
+#### `speclinter_analyze_codebase`
 **Purpose**: Comprehensive codebase analysis that generates rich project documentation and context files
 
 **Parameters**:
 - `project_root` (optional): Root directory of the project
-- `analysis_depth` (optional): Depth of analysis ('quick', 'standard', 'deep') - default: 'standard'
+- `analysis_depth` (optional): Depth of analysis ('quick', 'standard', 'comprehensive') - default: 'standard'
 - `max_files` (optional): Maximum number of files to analyze (default: 50)
 - `max_file_size` (optional): Maximum file size in bytes to include (default: 50000)
+- `include_reverse_spec` (optional): Discover existing features from the codebase
+- `analysis` (optional): Advanced usage for supplying pre-computed AI analysis
 
 **Usage Example**:
 ```
@@ -41,26 +43,20 @@ Complete reference for all Model Context Protocol (MCP) tools provided by SpecLi
 "Generate project context documentation from my code"
 ```
 
-#### `speclinter_analyze_codebase_process`
-**Purpose**: Process comprehensive codebase analysis results and update SpecLinter context files
-
-**Parameters**:
-- `analysis`: AI analysis results matching AICodebaseAnalysisWithContextSchema
-- `contextFiles` (optional): AI-generated context files
-- `project_root` (optional): Root directory of the project
-
-**Usage**: This is typically called automatically after the prepare step.
-
 ### Specification Parsing Tools
 
-#### `speclinter_parse_spec_prepare`
-**Purpose**: Prepare specification for AI analysis and return structured analysis prompt
+#### `speclinter_parse_spec`
+**Purpose**: Analyze a specification and create SpecLinter tasks
 
 **Parameters**:
 - `spec`: The specification text to parse
 - `feature_name`: Name for the feature (used for directory)
 - `context` (optional): Additional context about the implementation
 - `project_root` (optional): Root directory of the project
+- `deduplication_strategy` (optional): How to handle duplicates ('prompt', 'merge', 'replace', 'skip')
+- `similarity_threshold` (optional): Similarity threshold for detecting duplicates (0.0 to 1.0)
+- `skip_similarity_check` (optional): Skip similarity checking entirely
+- `analysis` (optional): Advanced usage for supplying pre-computed AI analysis
 
 **Usage Example**:
 ```
@@ -68,45 +64,22 @@ Complete reference for all Model Context Protocol (MCP) tools provided by SpecLi
 "Break down this feature: [your specification here]"
 ```
 
-#### `speclinter_parse_spec_process`
-**Purpose**: Process AI specification analysis results and create SpecLinter tasks
-
-**Parameters**:
-- `analysis`: AI analysis results matching AISpecAnalysisSchema
-- `feature_name`: Name for the feature
-- `original_spec` (optional): Original specification text
-- `project_root` (optional): Root directory of the project
-- `deduplication_strategy` (optional): How to handle duplicates ('prompt', 'merge', 'replace', 'skip')
-- `similarity_threshold` (optional): Similarity threshold for detecting duplicates (0.0 to 1.0)
-- `skip_similarity_check` (optional): Skip similarity checking entirely (default: false)
-
-**Usage**: This is typically called automatically after the prepare step.
-
 ### Similarity Detection Tools
 
-#### `speclinter_find_similar_prepare`
-**Purpose**: Prepare specification for AI similarity analysis against existing features
+#### `speclinter_find_similar`
+**Purpose**: Find existing features with similar intent or scope
 
 **Parameters**:
 - `spec`: Specification to find similarities for
 - `threshold` (optional): Similarity threshold (0.0 to 1.0) - default: 0.8
 - `project_root` (optional): Root directory of the project
+- `analysis` (optional): Advanced usage for supplying pre-computed AI analysis
 
 **Usage Example**:
 ```
 "Check if this feature already exists: [specification]"
 "Find similar functionality to: user profile management"
 ```
-
-#### `speclinter_find_similar_process`
-**Purpose**: Process AI similarity analysis results and return recommendations
-
-**Parameters**:
-- `analysis`: AI analysis results matching AISimilarityAnalysisSchema
-- `threshold` (optional): Similarity threshold used
-- `project_root` (optional): Root directory of the project
-
-**Usage**: This is typically called automatically after the prepare step.
 
 ### Task Management Tools
 
@@ -148,28 +121,19 @@ Complete reference for all Model Context Protocol (MCP) tools provided by SpecLi
 
 ### Implementation Validation Tools
 
-#### `speclinter_validate_implementation_prepare`
-**Purpose**: Scan codebase for feature implementation and prepare AI validation analysis
+#### `speclinter_validate_implementation`
+**Purpose**: Scan the codebase for a feature implementation and evaluate it against the saved specification
 
 **Parameters**:
 - `feature_name`: Name of the feature to validate
 - `project_root` (optional): Root directory of the project
+- `analysis` (optional): Advanced usage for supplying pre-computed AI analysis
 
 **Usage Example**:
 ```
 "Validate the implementation of my authentication feature"
 "Check if my user-dashboard code meets the requirements"
 ```
-
-#### `speclinter_validate_implementation_process`
-**Purpose**: Process AI validation analysis results and provide comprehensive implementation assessment
-
-**Parameters**:
-- `analysis`: AI validation results matching AIFeatureValidationSchema
-- `feature_name`: Name of the feature being validated
-- `project_root` (optional): Root directory of the project
-
-**Usage**: This is typically called automatically after the prepare step.
 
 **Validation Results Include**:
 - Task-by-task implementation status
@@ -181,14 +145,14 @@ Complete reference for all Model Context Protocol (MCP) tools provided by SpecLi
 
 ## Tool Usage Patterns
 
-### Two-Step AI-Leveraged Pattern
+### Unified AI-Leveraged Pattern
 
-Most SpecLinter tools follow a two-step pattern:
+Most SpecLinter tools expose a single MCP tool call:
 
-1. **Prepare Step**: Collects data and generates AI prompts
-2. **Process Step**: Takes AI analysis results and updates SpecLinter state
+1. **Unified Tool Call**: Collects data, validates prerequisites, and decides whether AI analysis is required
+2. **Internal Follow-up**: If AI analysis is needed, the assistant completes the follow-up automatically using the returned prompt and schema
 
-This pattern allows for:
+This keeps the public tool surface simple while preserving:
 - **Semantic Understanding**: AI provides intelligent analysis
 - **Flexible Processing**: Different AI models can be used
 - **Quality Control**: Human review of AI analysis before processing
@@ -207,23 +171,23 @@ All tools are designed to work with natural language prompts:
 The AI assistant automatically:
 - Selects appropriate tools
 - Provides required parameters
-- Handles the two-step process
+- Handles any required AI follow-up
 - Formats results for human consumption
 
 ## Integration Examples
 
 ### Basic Workflow
 1. Initialize project: `speclinter_init_project`
-2. Analyze codebase: `speclinter_analyze_codebase_prepare` + `process`
-3. Parse specification: `speclinter_parse_spec_prepare` + `process`
+2. Analyze codebase: `speclinter_analyze_codebase`
+3. Parse specification: `speclinter_parse_spec`
 4. Check progress: `speclinter_get_task_status`
-5. Validate implementation: `speclinter_validate_implementation_prepare` + `process`
+5. Validate implementation: `speclinter_validate_implementation`
 
 ### Advanced Workflow
-1. Check for similar features: `speclinter_find_similar_prepare` + `process`
-2. Parse with deduplication: `speclinter_parse_spec_prepare` + `process`
+1. Check for similar features: `speclinter_find_similar`
+2. Parse with deduplication: `speclinter_parse_spec`
 3. Update task statuses: `speclinter_update_task_status`
-4. Continuous validation: `speclinter_validate_implementation_prepare` + `process`
+4. Continuous validation: `speclinter_validate_implementation`
 
 ## Error Handling
 

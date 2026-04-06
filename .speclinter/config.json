@@ -43,5 +43,18 @@
     "defaultStrategy": "prompt",
     "autoMergeThreshold": 0.95,
     "taskSimilarityThreshold": 0.9
+  },
+  "reverseSpec": {
+    "enabled": true,
+    "analysisDepth": "standard",
+    "analysisScope": "full_codebase",
+    "confidenceThreshold": 0.7,
+    "discoveryMode": "features",
+    "autoGenerateSpecs": true,
+    "excludePatterns": ["*.test.ts", "*.spec.ts", "node_modules", "dist", "build"],
+    "focusOnBusinessFeatures": true,
+    "maxFeaturesPerAnalysis": 20,
+    "incrementalAnalysis": true,
+    "stateTrackingEnabled": true
   }
 }

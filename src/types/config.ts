@@ -45,6 +45,19 @@ export const ConfigSchema = z.object({
     defaultStrategy: z.enum(['prompt', 'merge', 'replace', 'skip']),
     autoMergeThreshold: z.number(),
     taskSimilarityThreshold: z.number()
+  }),
+  reverseSpec: z.object({
+    enabled: z.boolean(),
+    analysisDepth: z.enum(['quick', 'standard', 'comprehensive']),
+    analysisScope: z.enum(['new_code', 'full_codebase', 'incremental', 'since_date']),
+    confidenceThreshold: z.number().min(0).max(1),
+    discoveryMode: z.enum(['features', 'components', 'apis', 'all']),
+    autoGenerateSpecs: z.boolean(),
+    excludePatterns: z.array(z.string()),
+    focusOnBusinessFeatures: z.boolean(),
+    maxFeaturesPerAnalysis: z.number().min(1).max(100),
+    incrementalAnalysis: z.boolean(),
+    stateTrackingEnabled: z.boolean()
   })
 });
 
@@ -95,5 +108,18 @@ export const DEFAULT_CONFIG: Config = {
     defaultStrategy: "prompt",
     autoMergeThreshold: 0.95,
     taskSimilarityThreshold: 0.9
+  },
+  reverseSpec: {
+    enabled: true,
+    analysisDepth: "standard",
+    analysisScope: "full_codebase",
+    confidenceThreshold: 0.7,
+    discoveryMode: "features",
+    autoGenerateSpecs: true,
+    excludePatterns: ["*.test.ts", "*.spec.ts", "node_modules", "dist", "build"],
+    focusOnBusinessFeatures: true,
+    maxFeaturesPerAnalysis: 20,
+    incrementalAnalysis: true,
+    stateTrackingEnabled: true
   }
 };

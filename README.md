@@ -41,7 +41,7 @@ Add this to your AI IDE's MCP configuration:
   "mcpServers": {
     "speclinter": {
       "command": "node",
-      "args": ["/absolute/path/to/speclinter-mcp/dist/cli.js", "serve"]
+      "args": ["/absolute/path/to/dist/cli.js", "serve"]
     }
   }
 }
@@ -116,7 +116,7 @@ pnpm install && pnpm build
   "mcpServers": {
     "speclinter": {
       "command": "node",
-      "args": ["/absolute/path/to/speclinter-mcp/dist/cli.js", "serve"]
+      "args": ["/absolute/path/to/dist/cli.js", "serve"]
     }
   }
 }

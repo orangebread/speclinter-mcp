@@ -44,8 +44,8 @@ class SpecLinterServer {
       }
     );
 
-    // Legacy run_tests tool removed - replaced with AI-leveraged validation
-    // Use speclinter_validate_implementation_prepare and speclinter_validate_implementation_process instead
+    // Legacy run_tests tool removed - replaced with unified AI-leveraged validation
+    // Use speclinter_validate_implementation instead
 
     // Update task status tool
     this.server.registerTool(

@@ -261,7 +261,7 @@ export const AISpecQualityAnalysisSchema = z.object({
   })).describe('Prioritized improvement suggestions'),
   aiInsights: z.object({
     confidence: z.number().min(0).max(1).describe('Overall AI confidence in the analysis'),
-    analysisDepth: z.enum(['surface', 'standard', 'deep']).describe('Depth of analysis performed'),
+    analysisDepth: z.enum(['quick', 'standard', 'comprehensive']).describe('Depth of analysis performed'),
     contextFactors: z.array(z.string()).describe('Project context factors that influenced the analysis'),
     recommendations: z.array(z.string()).describe('High-level recommendations for spec improvement')
   }).describe('AI-specific insights and metadata')
@@ -740,7 +740,106 @@ Scenario: Successfully create user with valid data
   And the password should be securely hashed in the database
 \`\`\`
 
-Please generate comprehensive Gherkin scenarios following these guidelines and return a JSON response matching the AIGherkinAnalysisSchema.`
+Please generate comprehensive Gherkin scenarios following these guidelines and return a JSON response matching the AIGherkinAnalysisSchema.`,
+
+  reverseSpecAnalysis: `# AI Reverse Specification Analysis
+
+You are an expert software architect and business analyst specializing in reverse engineering. Your task is to analyze an existing codebase and discover implementable business features that lack formal specifications.
+
+## Codebase Analysis Data
+**Project Root**: {projectRoot}
+**Tech Stack**: {techStack}
+**Architecture**: {architecture}
+**Analysis Scope**: {analysisScope}
+**Confidence Threshold**: {confidenceThreshold}
+
+## Files Analyzed
+{codebaseFiles}
+
+## Analysis Requirements
+
+### 1. Feature Boundary Detection
+**Primary Goal**: Identify distinct BUSINESS FEATURES, not technical utilities
+
+**Feature Identification Criteria**:
+- Provides direct user or business value
+- Has cohesive functionality serving a specific purpose
+- Is substantially implemented (>70% complete)
+- Lacks formal specification documentation
+- Could benefit from SpecLinter task management
+
+**Ignore These**:
+- Utility functions and helper libraries
+- Infrastructure and build configuration
+- Incomplete prototypes or experimental code
+- Features already documented in speclinter-tasks/
+- Generic technical patterns without business context
+
+### 2. Implementation Analysis
+For each discovered feature, analyze:
+- **Business Purpose**: What user value does this provide?
+- **Implementation Completeness**: How complete is the current implementation?
+- **Code Quality**: Technical debt, security, performance considerations
+- **Test Coverage**: Existing test coverage and gaps
+- **Integration Points**: How it connects to other features
+
+### 3. Reverse Engineering Process
+**Step 1**: Scan codebase for business logic patterns
+**Step 2**: Group related files by functional cohesion
+**Step 3**: Identify user-facing functionality and business rules
+**Step 4**: Reverse engineer user stories from implementation
+**Step 5**: Extract acceptance criteria from code behavior
+**Step 6**: Assess specification gaps and improvement opportunities
+
+### 4. Quality Assessment
+Evaluate each discovered feature for:
+- **Specification Need**: Would formal specs improve development?
+- **Technical Debt**: Code quality issues requiring attention
+- **Test Coverage**: Adequacy of existing tests
+- **Documentation**: Quality of existing documentation
+- **Maintainability**: How easy is it to modify and extend?
+
+## Output Requirements
+
+### Feature Discovery
+- Generate clear, descriptive feature names suitable for directory naming
+- Provide confidence scores (0.0-1.0) for feature boundary detection
+- Map implementation files to specific feature responsibilities
+- Identify key symbols (functions, classes, exports) per feature
+
+### Reverse-Engineered Specifications
+For each feature, create:
+- **User Story**: "As a [user], I want [goal] so that [benefit]"
+- **Acceptance Criteria**: Derived from implementation behavior
+- **Business Value**: Clear articulation of user/business benefit
+- **Technical Considerations**: Security, performance, scalability factors
+
+### Implementation Mapping
+Provide detailed file mappings:
+- **Core Files**: Primary implementation with line numbers
+- **Supporting Files**: Utilities, types, configurations
+- **Test Files**: Existing test coverage
+- **Integration Points**: Dependencies and relationships
+
+### Quality Insights
+- Overall implementation quality assessment
+- Technical debt identification and prioritization
+- Security and performance considerations
+- Recommendations for improvement
+
+## Context Factors
+- **Project Maturity**: {projectMaturity}
+- **Team Size**: {teamSize}
+- **Development Stage**: {developmentStage}
+- **Business Domain**: {businessDomain}
+
+## Success Criteria
+- Features discovered should be actionable and manageable
+- Reverse-engineered specs should be implementable by SpecLinter
+- File mappings should be precise and useful for validation
+- Recommendations should be prioritized and realistic
+
+Return a JSON response matching the AIReverseSpecAnalysisSchema. Focus on discovering features that would genuinely benefit from formal specification management.`
 };
 
 // AI Gherkin Generation Schemas
@@ -802,6 +901,76 @@ export const AIGherkinAnalysisSchema = z.object({
   })
 });
 
+// Reverse Spec Analysis Schemas
+export const AIDiscoveredFeatureSchema = z.object({
+  name: z.string().describe('Feature name in kebab-case format suitable for directory naming'),
+  confidence: z.number().min(0).max(1).describe('AI confidence in feature boundary detection (0-1)'),
+  businessPurpose: z.string().describe('Primary business purpose and user value this feature provides'),
+  implementationStatus: z.enum(['complete', 'partial', 'prototype', 'incomplete']).describe('Current implementation completeness'),
+  specificationGap: z.boolean().describe('Whether this feature lacks formal specification'),
+  coreFiles: z.array(z.object({
+    path: z.string().describe('Relative file path from project root'),
+    purpose: z.string().describe('Role this file plays in the feature'),
+    lines: z.array(z.number()).describe('Key line numbers containing feature logic'),
+    keySymbols: z.array(z.string()).describe('Important functions, classes, or exports')
+  })).describe('Core implementation files for this feature'),
+  supportingFiles: z.array(z.object({
+    path: z.string().describe('Relative file path from project root'),
+    purpose: z.string().describe('Supporting role (utilities, types, configs, etc.)'),
+    lines: z.array(z.number()).optional().describe('Relevant line numbers if applicable')
+  })).describe('Supporting files that contribute to this feature'),
+  testFiles: z.array(z.object({
+    path: z.string().describe('Test file path'),
+    coverage: z.enum(['unit', 'integration', 'e2e', 'mixed']).describe('Type of test coverage')
+  })).describe('Test files covering this feature'),
+  userStory: z.string().describe('Reverse-engineered user story that this implementation fulfills'),
+  acceptanceCriteria: z.array(z.string()).describe('Acceptance criteria derived from implementation analysis'),
+  suggestedImprovements: z.array(z.string()).describe('Potential enhancements or missing functionality'),
+  integrationPoints: z.array(z.object({
+    feature: z.string().describe('Name of related feature'),
+    relationship: z.enum(['depends_on', 'provides_to', 'shares_with', 'extends']).describe('Type of relationship'),
+    description: z.string().describe('How features interact')
+  })).describe('Relationships with other discovered features'),
+  technicalDebt: z.array(z.string()).describe('Technical debt or code quality issues identified'),
+  securityConsiderations: z.array(z.string()).describe('Security aspects and potential vulnerabilities'),
+  performanceConsiderations: z.array(z.string()).describe('Performance characteristics and optimization opportunities')
+});
+
+export const AIReverseSpecAnalysisSchema = z.object({
+  discoveredFeatures: z.array(AIDiscoveredFeatureSchema).describe('Features discovered through codebase analysis'),
+  analysisScope: z.enum(['new_code', 'full_codebase', 'incremental', 'since_date']).describe('Scope of analysis performed'),
+  analysisDepth: z.enum(['quick', 'standard', 'comprehensive']).describe('Depth of feature discovery analysis'),
+  confidenceThreshold: z.number().min(0).max(1).describe('Minimum confidence threshold used for feature inclusion'),
+  codebaseInsights: z.object({
+    totalFilesAnalyzed: z.number().describe('Number of files analyzed for feature discovery'),
+    featureBoundaryStrategy: z.string().describe('Strategy used to identify feature boundaries'),
+    businessLogicPatterns: z.array(z.string()).describe('Common business logic patterns identified'),
+    architecturalObservations: z.array(z.string()).describe('Key architectural insights from feature analysis')
+  }).describe('Overall insights from the reverse engineering analysis'),
+  qualityAssessment: z.object({
+    overallImplementationQuality: z.number().min(0).max(100).describe('Overall quality of discovered implementations'),
+    specificationCoverage: z.number().min(0).max(100).describe('Percentage of features that have formal specifications'),
+    testCoverage: z.number().min(0).max(100).describe('Estimated test coverage across discovered features'),
+    documentationQuality: z.number().min(0).max(100).describe('Quality of existing documentation for features'),
+    technicalDebtLevel: z.enum(['low', 'medium', 'high', 'critical']).describe('Overall technical debt assessment')
+  }).describe('Quality assessment of discovered features'),
+  recommendations: z.array(z.object({
+    type: z.enum(['specification', 'testing', 'refactoring', 'documentation', 'architecture']).describe('Type of recommendation'),
+    priority: z.enum(['low', 'medium', 'high', 'critical']).describe('Priority level'),
+    description: z.string().describe('Detailed recommendation'),
+    affectedFeatures: z.array(z.string()).describe('Features that would benefit from this recommendation'),
+    estimatedEffort: z.enum(['XS', 'S', 'M', 'L', 'XL']).describe('Estimated effort to implement')
+  })).describe('Prioritized recommendations for improving the codebase'),
+  nextSteps: z.array(z.string()).describe('Suggested next steps for managing discovered features'),
+  metadata: z.object({
+    analysisTimestamp: z.string().describe('ISO timestamp of when analysis was performed'),
+    toolVersion: z.string().describe('Version of SpecLinter used for analysis'),
+    analysisId: z.string().describe('Unique identifier for this analysis session'),
+    processingTime: z.number().describe('Time taken for analysis in seconds'),
+    limitations: z.array(z.string()).describe('Known limitations of this reverse engineering analysis')
+  }).describe('Analysis metadata and tracking information')
+});
+
 // Type exports
 export type AICodePattern = z.infer<typeof AICodePatternSchema>;
 export type AITechStack = z.infer<typeof AITechStackSchema>;
@@ -823,3 +992,7 @@ export type AIGherkinScenario = z.infer<typeof AIGherkinScenarioSchema>;
 export type AIGherkinFeature = z.infer<typeof AIGherkinFeatureSchema>;
 export type AIGherkinAnalysis = z.infer<typeof AIGherkinAnalysisSchema>;
 export type AICodebaseAnalysisWithContext = z.infer<typeof AICodebaseAnalysisWithContextSchema>;
+
+// Reverse Spec Analysis Types
+export type AIDiscoveredFeature = z.infer<typeof AIDiscoveredFeatureSchema>;
+export type AIReverseSpecAnalysis = z.infer<typeof AIReverseSpecAnalysisSchema>;

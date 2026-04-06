@@ -1,4 +1,4 @@
-import { ParseResult, ProjectContext, Task } from '../types/index.js';
+import { ParseResult, ProjectContext } from '../types/index.js';
 import { Config } from '../types/config.js';
 
 export class SpecParser {
@@ -13,67 +13,24 @@ export class SpecParser {
     context?: string,
     projectContext?: ProjectContext | null
   ): Promise<ParseResult> {
-    // AI-first parsing - no legacy fallback
-    return this.parseWithAI(spec, context, projectContext);
-  }
+    void spec;
+    void context;
+    void projectContext;
 
-  private async parseWithAI(
-    spec: string,
-    context?: string,
-    projectContext?: ProjectContext | null
-  ): Promise<ParseResult> {
-    // Import AI tools dynamically to avoid circular dependencies
-    const { handleAnalyzeSpecComprehensive, handleProcessComprehensiveSpecAnalysis } = await import('../ai-tools.js');
-
-    // Generate a feature name for AI analysis (temporary)
-    const tempFeatureName = `temp_${Date.now()}`;
-
-    // Step 1: Prepare comprehensive AI analysis
-    const prepareResult = await handleAnalyzeSpecComprehensive({
-      spec,
-      feature_name: tempFeatureName,
-      context,
-      project_root: process.cwd(),
-      analysis_depth: this.config.generation.specAnalysis.analysisDepth
-    });
-
-    if (!prepareResult.success) {
-      throw new Error(`AI analysis preparation failed: ${prepareResult.error}`);
-    }
-
-    // For now, we'll simulate AI analysis with a simplified approach
-    // In a full implementation, this would involve calling an AI service
-    // For this implementation, we'll generate enhanced results based on config
-    const simulatedAIAnalysis = this.generateSimulatedAIAnalysis(spec, context, projectContext);
-
-    // Step 2: Process the simulated AI analysis
-    const processResult = await handleProcessComprehensiveSpecAnalysis({
-      analysis: simulatedAIAnalysis,
-      feature_name: tempFeatureName,
-      project_root: process.cwd(),
-      analysis_depth: this.config.generation.specAnalysis.analysisDepth
-    });
-
-    if (!processResult.success) {
-      throw new Error(`AI analysis processing failed: ${processResult.error}`);
-    }
-
-    if (!processResult.parse_result) {
-      throw new Error('AI analysis did not return a valid parse result');
-    }
-
-    return processResult.parse_result;
+    throw new Error(
+      'SpecParser.parse is not supported for direct local parsing. Use the public MCP workflow via speclinter_parse_spec or provide AI analysis to the processing tools explicitly.'
+    );
   }
 
 
-  // Helper methods for AI simulation
+  // Helper methods for test fixtures and schema examples
   private extractTitle(sentence: string): string {
     // Extract meaningful title from sentence
     const words = sentence.trim().split(/\s+/).slice(0, 8);
     return words.join(' ').replace(/[^\w\s]/g, '').trim() || 'Implementation Task';
   }
 
-  // AI-powered simulation methods for enhanced parsing
+  // Simulation helpers retained for tests and schema examples only
 
   public generateSimulatedAIAnalysis(
     spec: string,
@@ -248,6 +205,9 @@ export class SpecParser {
     context?: string,
     projectContext?: ProjectContext | null
   ): any[] {
+    // 'context' reserved for future task generation heuristics
+    void context;
+
     const sentences = spec.split(/[.!?]+/).filter(s => s.trim().length > 0);
     const tasks = [];
 

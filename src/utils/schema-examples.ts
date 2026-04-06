@@ -3,14 +3,9 @@
  * Provides concrete examples and documentation for AI analysis schemas
  */
 
-import type { 
+import type {
   AICodebaseAnalysisWithContext,
-  AICodebaseAnalysis,
-  AIContextFiles,
-  AITechStack,
-  AINamingConventions,
-  AIProjectStructure,
-  AICodePattern
+  AIReverseSpecAnalysis
 } from '../types/ai-schemas.js';
 
 /**
@@ -210,9 +205,9 @@ The server implements the Model Context Protocol specification:
 - **Prompts**: AI analysis prompts and templates
 
 ## AI-Leveraged Patterns
-Two-step AI integration pattern:
-1. **Prepare**: Collect data and generate AI prompts
-2. **Process**: Validate and process AI responses
+Unified MCP workflow pattern:
+1. **Public Tool Call**: Collect data, validate prerequisites, and determine whether AI analysis is needed
+2. **Internal Continuation**: Complete AI follow-up and process validated results without exposing internal helper tools
 
 ## Data Flow
 1. User provides specification via MCP tool
@@ -233,6 +228,148 @@ Two-step AI integration pattern:
 }
 
 /**
+ * Generate a complete example of AIReverseSpecAnalysisSchema
+ */
+export function generateReverseSpecAnalysisExample(): AIReverseSpecAnalysis {
+  return {
+    discoveredFeatures: [
+      {
+        name: "user-authentication",
+        confidence: 0.95,
+        businessPurpose: "Enable secure user login and registration for the application",
+        implementationStatus: "complete",
+        specificationGap: true,
+        coreFiles: [
+          {
+            path: "src/auth/auth.service.ts",
+            purpose: "Core authentication logic and JWT token management",
+            lines: [15, 42, 67, 89, 120],
+            keySymbols: ["AuthService", "login", "register", "validateToken"]
+          },
+          {
+            path: "src/auth/auth.controller.ts",
+            purpose: "HTTP endpoints for authentication operations",
+            lines: [10, 25, 40, 55],
+            keySymbols: ["AuthController", "loginEndpoint", "registerEndpoint"]
+          }
+        ],
+        supportingFiles: [
+          {
+            path: "src/auth/auth.middleware.ts",
+            purpose: "Request validation and token verification middleware",
+            lines: [1, 20, 35]
+          },
+          {
+            path: "src/types/auth.types.ts",
+            purpose: "TypeScript interfaces for authentication data structures"
+          }
+        ],
+        testFiles: [
+          {
+            path: "tests/auth.service.test.ts",
+            coverage: "unit"
+          },
+          {
+            path: "tests/auth.integration.test.ts",
+            coverage: "integration"
+          }
+        ],
+        userStory: "As a user, I want to securely log in and register so that I can access protected features of the application",
+        acceptanceCriteria: [
+          "Users can register with email and password",
+          "Passwords are securely hashed using bcrypt",
+          "JWT tokens are generated on successful login",
+          "Rate limiting prevents brute force attacks",
+          "Session management with token validation"
+        ],
+        suggestedImprovements: [
+          "Add two-factor authentication support",
+          "Implement OAuth integration with Google/GitHub",
+          "Add password complexity validation",
+          "Implement account lockout after failed attempts"
+        ],
+        integrationPoints: [
+          {
+            feature: "user-profile",
+            relationship: "provides_to",
+            description: "Authentication service provides user identity to profile management"
+          }
+        ],
+        technicalDebt: [
+          "Hard-coded JWT secret should be moved to environment variables",
+          "Error messages could be more user-friendly"
+        ],
+        securityConsiderations: [
+          "JWT tokens have appropriate expiration times",
+          "Passwords are properly hashed with salt",
+          "Rate limiting implemented to prevent brute force"
+        ],
+        performanceConsiderations: [
+          "Database queries are optimized with proper indexing",
+          "JWT verification is cached for performance"
+        ]
+      }
+    ],
+    analysisScope: "full_codebase",
+    analysisDepth: "standard",
+    confidenceThreshold: 0.7,
+    codebaseInsights: {
+      totalFilesAnalyzed: 45,
+      featureBoundaryStrategy: "Business logic cohesion and file organization patterns",
+      businessLogicPatterns: [
+        "Service-Controller-Middleware pattern",
+        "Dependency injection for testability",
+        "Centralized error handling"
+      ],
+      architecturalObservations: [
+        "Clean separation of concerns between layers",
+        "Consistent TypeScript usage throughout",
+        "Good test coverage for core business logic"
+      ]
+    },
+    qualityAssessment: {
+      overallImplementationQuality: 85,
+      specificationCoverage: 20,
+      testCoverage: 75,
+      documentationQuality: 60,
+      technicalDebtLevel: "medium"
+    },
+    recommendations: [
+      {
+        type: "specification",
+        priority: "high",
+        description: "Create formal specifications for authentication feature to improve maintainability",
+        affectedFeatures: ["user-authentication"],
+        estimatedEffort: "M"
+      },
+      {
+        type: "testing",
+        priority: "medium",
+        description: "Add end-to-end tests for complete authentication flows",
+        affectedFeatures: ["user-authentication"],
+        estimatedEffort: "S"
+      }
+    ],
+    nextSteps: [
+      "Review discovered features in speclinter-tasks/ directories",
+      "Use speclinter_validate_implementation for detailed analysis",
+      "Consider generating formal specifications for high-value features"
+    ],
+    metadata: {
+      analysisTimestamp: "2025-01-23T14:30:00Z",
+      toolVersion: "1.0.0",
+      analysisId: "reverse-spec-20250123-143000",
+      processingTime: 45.2,
+      limitations: [
+        "Analysis limited to TypeScript/JavaScript files",
+        "Business logic detection based on naming patterns and file organization",
+        "Manual review recommended for complex feature boundaries"
+      ]
+    }
+  };
+}
+
+/**
  * Generate schema documentation for error messages
  */
 export function getSchemaDocumentation(schemaName: string): object {
@@ -246,7 +383,22 @@ export function getSchemaDocumentation(schemaName: string): object {
         },
         example: generateCodebaseAnalysisExample()
       };
-    
+
+    case 'AIReverseSpecAnalysisSchema':
+      return {
+        description: 'Reverse specification analysis for discovering existing features from codebase',
+        structure: {
+          discoveredFeatures: 'Array of AIDiscoveredFeatureSchema objects',
+          analysisScope: 'Scope of analysis performed',
+          codebaseInsights: 'Overall insights from reverse engineering',
+          qualityAssessment: 'Quality metrics for discovered features',
+          recommendations: 'Prioritized improvement recommendations',
+          metadata: 'Analysis tracking and metadata'
+        },
+        usage: 'Used when include_reverse_spec: true in speclinter_analyze_codebase',
+        example: generateReverseSpecAnalysisExample()
+      };
+
     default:
       return {
         description: 'Unknown schema',

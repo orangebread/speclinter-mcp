@@ -9,9 +9,10 @@ import {
   handleGenerateGherkinUnified,
   handleAnalyzeSpecQualityUnified,
   handleGenerateTasksUnified,
-  handleAnalyzeSpecComprehensiveUnified
+  handleAnalyzeSpecComprehensiveUnified,
+  handleReverseSpecUnified
 } from './unified-ai-tools.js';
-import { generateCodebaseAnalysisExample, generateMinimalExample, getSchemaDocumentation } from './utils/schema-examples.js';
+import { generateCodebaseAnalysisExample, generateMinimalExample, generateReverseSpecAnalysisExample, getSchemaDocumentation } from './utils/schema-examples.js';
 
 /**
  * Helper function to wrap tool results in MCP content format
@@ -43,8 +44,8 @@ async function handleToolExecution(toolHandler: (args: any) => Promise<any>, arg
 
 
 /**
- * Register AI-leveraged tools with the MCP server
- * These tools follow the two-step pattern: collect data + return AI prompts, then process AI results
+ * Register AI-leveraged tools with the MCP server.
+ * Public workflows are single-step MCP tools even when they use internal AI continuation.
  */
 export function registerAITools(server: McpServer) {
   // Schema documentation and examples
@@ -54,7 +55,7 @@ export function registerAITools(server: McpServer) {
       title: 'Get Schema Documentation',
       description: 'Get detailed schema documentation and examples for SpecLinter AI analysis tools',
       inputSchema: {
-        schema_name: z.enum(['AICodebaseAnalysisWithContextSchema', 'AISpecAnalysisSchema', 'AIGherkinAnalysisSchema']).optional().describe('Specific schema to get help for'),
+        schema_name: z.enum(['AICodebaseAnalysisWithContextSchema', 'AISpecAnalysisSchema', 'AIGherkinAnalysisSchema', 'AIReverseSpecAnalysisSchema']).optional().describe('Specific schema to get help for'),
         include_example: z.boolean().optional().default(true).describe('Include a complete example'),
         example_type: z.enum(['complete', 'minimal']).optional().default('complete').describe('Type of example to include')
       }
@@ -66,10 +67,14 @@ export function registerAITools(server: McpServer) {
         const documentation = getSchemaDocumentation(schema_name);
         const result: any = { schema_name, documentation };
 
-        if (include_example && schema_name === 'AICodebaseAnalysisWithContextSchema') {
-          result.example = example_type === 'minimal'
-            ? generateMinimalExample()
-            : generateCodebaseAnalysisExample();
+        if (include_example) {
+          if (schema_name === 'AICodebaseAnalysisWithContextSchema') {
+            result.example = example_type === 'minimal'
+              ? generateMinimalExample()
+              : generateCodebaseAnalysisExample();
+          } else if (schema_name === 'AIReverseSpecAnalysisSchema') {
+            result.example = generateReverseSpecAnalysisExample();
+          }
         }
 
         return wrapMcpResponse(result);
@@ -92,6 +97,11 @@ export function registerAITools(server: McpServer) {
             name: 'AIGherkinAnalysisSchema',
             description: 'Gherkin scenario generation with quality metrics',
             used_by: ['speclinter_generate_gherkin']
+          },
+          {
+            name: 'AIReverseSpecAnalysisSchema',
+            description: 'Reverse specification analysis for discovering existing features from codebase',
+            used_by: ['speclinter_analyze_codebase (with include_reverse_spec: true)']
           }
         ],
         usage: 'Call this tool with schema_name parameter to get detailed documentation and examples'
@@ -115,12 +125,17 @@ export function registerAITools(server: McpServer) {
     'speclinter_analyze_codebase',
     {
       title: 'Analyze Codebase',
-      description: 'Comprehensive codebase analysis that generates rich project documentation and context files',
+      description: 'Comprehensive codebase analysis that generates rich project documentation and context files. Automatically discovers existing features when enabled in configuration.',
       inputSchema: {
         project_root: z.string().optional().describe('Root directory of the project (defaults to auto-detected project root)'),
-        analysis_depth: z.enum(['quick', 'standard', 'deep']).optional().default('standard').describe('Depth of analysis to perform'),
+        analysis_depth: z.enum(['quick', 'standard', 'comprehensive']).optional().default('standard').describe('Depth of analysis to perform'),
         max_files: z.number().optional().default(50).describe('Maximum number of files to analyze'),
         max_file_size: z.number().optional().default(50000).describe('Maximum file size in bytes to include'),
+        // Reverse Spec Analysis Parameters
+        include_reverse_spec: z.boolean().optional().default(false).describe('Force reverse specification analysis (automatic when enabled in config and no features exist)'),
+        feature_discovery_mode: z.enum(['features', 'components', 'apis', 'all']).optional().default('features').describe('Type of features to discover during reverse analysis'),
+        confidence_threshold: z.number().min(0).max(1).optional().default(0.7).describe('Minimum confidence threshold for feature discovery (0.0 to 1.0)'),
+        analysis_scope: z.enum(['new_code', 'full_codebase', 'incremental', 'since_date']).optional().default('full_codebase').describe('Scope of reverse specification analysis'),
         // Advanced usage: pre-computed analysis
         analysis: z.object({}).passthrough().optional().describe('Pre-computed AI analysis (advanced usage)'),
         contextFiles: z.object({}).passthrough().optional().describe('Pre-computed context files (advanced usage)')
@@ -238,6 +253,26 @@ export function registerAITools(server: McpServer) {
       }
     },
     async (args) => handleToolExecution(handleGenerateTasksUnified, args)
+  );
+
+  // Dedicated Reverse Specification Discovery Tool
+  server.registerTool(
+    'speclinter_reverse_spec',
+    {
+      title: 'Reverse Specification Discovery',
+      description: 'Discover existing features from codebase and generate specifications with speclinter-tasks directories',
+      inputSchema: {
+        project_root: z.string().optional().describe('Root directory of the project (defaults to auto-detected project root)'),
+        analysis_depth: z.enum(['quick', 'standard', 'comprehensive']).optional().default('standard').describe('Depth of feature discovery analysis'),
+        feature_discovery_mode: z.enum(['features', 'components', 'apis', 'all']).optional().default('features').describe('Type of features to discover'),
+        confidence_threshold: z.number().min(0).max(1).optional().default(0.7).describe('Minimum confidence threshold for feature discovery'),
+        analysis_scope: z.enum(['new_code', 'full_codebase', 'incremental', 'since_date']).optional().default('full_codebase').describe('Scope of reverse specification analysis'),
+        max_features: z.number().optional().default(10).describe('Maximum number of features to discover'),
+        // Advanced usage: pre-computed analysis
+        analysis: z.object({}).passthrough().optional().describe('Pre-computed AI reverse spec analysis (advanced usage)')
+      }
+    },
+    async (args) => handleToolExecution(handleReverseSpecUnified, args)
   );
 
   // Unified Comprehensive Spec Analysis

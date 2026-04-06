@@ -2,6 +2,9 @@
 import { Command } from 'commander';
 import chalk from 'chalk';
 import ora from 'ora';
+import { Storage } from './core/storage.js';
+import { validateProjectContext } from './utils/validation.js';
+import { resolveProjectRoot } from './tools.js';
 
 const program = new Command();
 
@@ -50,6 +53,10 @@ async function initializeSpecLinter(): Promise<void> {
       project_root: process.cwd()
     });
 
+    if (!result.success) {
+      throw new Error(result.message);
+    }
+
     spinner.succeed('SpecLinter initialized successfully!');
 
     console.log(chalk.green('\n🎉 SpecLinter is ready to use!'));
@@ -67,24 +74,34 @@ async function initializeSpecLinter(): Promise<void> {
   }
 }
 
+async function createCliStorage(): Promise<Storage> {
+  const projectRoot = await resolveProjectRoot(process.cwd());
+  const validation = await validateProjectContext(projectRoot);
+
+  if (!validation.success || !validation.rootDir) {
+    throw new Error(validation.error ?? 'SpecLinter is not initialized in this project');
+  }
+
+  const storage = new Storage(validation.rootDir);
+  await storage.initialize();
+  return storage;
+}
+
 async function validateFeatureImplementation(feature: string): Promise<void> {
   const spinner = ora(`Validating implementation for ${feature}...`).start();
 
   try {
     console.log(chalk.yellow('\n🤖 AI-powered validation requires an AI assistant.'));
     console.log(chalk.gray('Please use the MCP tools through your AI IDE:'));
-    console.log(chalk.blue('  1. "Prepare validation for feature: ' + feature + '"'));
-    console.log(chalk.blue('  2. AI will analyze the implementation'));
-    console.log(chalk.blue('  3. "Process the validation results"'));
+    console.log(chalk.blue(`  1. "Validate implementation for feature: ${feature}"`));
+    console.log(chalk.blue('  2. If AI analysis is needed, your assistant will handle the follow-up automatically'));
     console.log(chalk.gray('\nOr use the direct MCP tools:'));
-    console.log(chalk.blue('  • speclinter_validate_implementation_prepare'));
-    console.log(chalk.blue('  • speclinter_validate_implementation_process'));
+    console.log(chalk.blue('  • speclinter_validate_implementation'));
 
     spinner.info('Validation requires AI analysis');
 
-    // For now, show basic status information
-    const { StorageManager } = await import('./core/storage-manager.js');
-    const storage = await StorageManager.createInitializedStorage();
+    // Show current status information without mutating project state
+    const storage = await createCliStorage();
     const status = await storage.getFeatureStatus(feature);
 
     console.log(chalk.green(`\n📊 Current Status for ${feature}:`));
@@ -114,13 +131,13 @@ async function validateFeatureImplementation(feature: string): Promise<void> {
   } catch (error) {
     spinner.fail('Validation check failed');
     console.error(chalk.red(error instanceof Error ? error.message : 'Unknown error'));
+    process.exitCode = 1;
   }
 }
 
 async function showFeatureStatus(feature: string): Promise<void> {
   try {
-    const { StorageManager } = await import('./core/storage-manager.js');
-    const storage = await StorageManager.createInitializedStorage();
+    const storage = await createCliStorage();
 
     const status = await storage.getFeatureStatus(feature);
 
@@ -138,6 +155,7 @@ async function showFeatureStatus(feature: string): Promise<void> {
 
   } catch (error) {
     console.error(chalk.red(error instanceof Error ? error.message : 'Unknown error'));
+    process.exitCode = 1;
   }
 }
 

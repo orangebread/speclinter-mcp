@@ -1,3 +1,4 @@
+.docs_deprecated/
 node_modules/
 dist/
 *.log
