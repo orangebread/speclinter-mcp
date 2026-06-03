@@ -1,3 +1,10 @@
+> [!IMPORTANT]
+> **Project Status: No Longer Supported**
+>
+> SpecLinter MCP is no longer being actively supported, maintained, or developed. This repository remains available as-is for anyone who finds it useful, but issues, pull requests, and feature requests should not be considered actively monitored.
+>
+> Thank you to everyone who tried SpecLinter, shared feedback, opened issues, or used it in a workflow. Your interest and encouragement are sincerely appreciated.
+
 ```
  ██████╗ ██████╗ ███████╗ ██████╗██╗     ██╗███╗   ██╗████████╗███████╗██████╗
 ██╔════╝ ██╔══██╗██╔════╝██╔════╝██║     ██║████╗  ██║╚══██╔══╝██╔════╝██╔══██╗
@@ -374,7 +381,9 @@ Scenario: Team coordination
 ### Cross-Project Similarity
 SpecLinter can detect similar features across multiple repositories and microservices, helping large teams avoid redundant work.
 
-## 🔧 Development & Contributing
+## 🔧 Development Reference
+
+These commands are retained for historical reference for anyone exploring or forking the project.
 
 ```bash
 git clone https://github.com/orangebread/speclinter-mcp.git
